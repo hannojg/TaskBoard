@@ -74,3 +74,41 @@ test('exports only board access, reuses its own export and preserves a different
  const preserved = readFileSync(output,'utf8');
  assert.equal(preserved,different);
 });
+
+test('the picker import validates access before saving and never returns the access key',async t => {
+ const {connectFromFile} = await import('../src/server/connection.mjs');
+ const {pathToFileURL} = await import('node:url');
+ const {root,settings} = fixture(t);
+ const path = join(root,'received.json');
+ const token = 'private-test-key';
+ const input = JSON.stringify({url:'https://board.example',token});
+ writeFileSync(path,input);
+ const directory = join(root,'new-mac');
+ const uri = pathToFileURL(path);
+ const board = {state:{version:3,projects:[],tasks:[]},revision:0,catalog:[],chatCatalog:[]};
+ t.mock.method(globalThis,'fetch',async () => Response.json(board));
+ const connected = await connectFromFile(directory,uri.href);
+ assert.deepEqual(connected.data,board);
+ const output = JSON.stringify(connected.data);
+ assert.equal(output.includes(token),false);
+ const original = settings(directory);
+ t.mock.method(globalThis,'fetch',async () => new Response('',{status:403}));
+ const other = JSON.stringify({url:'https://other.example',token:'wrong-test-key'});
+ writeFileSync(path,other);
+ await assert.rejects(connectFromFile(directory,uri.href),/access was denied/);
+ const preserved = settings(directory);
+ assert.deepEqual(preserved,original);
+});
+
+test('malformed private files show a safe error without exposing their contents',async t => {
+ const {readConnectionFile} = await import('../scripts/connection.mjs');
+ const {root} = fixture(t);
+ const path = join(root,'invalid.json');
+ const secret = 'private-contents-must-stay-local';
+ writeFileSync(path,secret);
+ await assert.rejects(readConnectionFile(path),error => {
+  assert.equal(error.message.includes(secret),false);
+  assert.match(error.message,/valid TaskBoard-connection.json/);
+  return true;
+ });
+});

@@ -1,4 +1,5 @@
 import { fetchIssue,searchIssues,addImportedIssue,updateImportedIssue } from './github.mjs';
+import { connectFromFile,connectionFileForm } from './connection.mjs';
 import { chatCatalogSchema } from './chats.mjs';
 import { resolveProject } from './project-details.mjs';
 import { readFile } from 'node:fs/promises';
@@ -14,12 +15,12 @@ import { z } from 'zod';
 import { loadStore,boardSchema,catalogSchema,projectSchema,taskSchema } from './store.mjs';
 const home = homedir();
 const dataDirectory = process.env.TASKBOARD_DATA_DIR || join(home,'Library','Application Support','TaskBoard');
-const store = await loadStore(dataDirectory);
+let store = await loadStore(dataDirectory);
 const iconFile = new URL('../assets/icon.svg',import.meta.url);
 const icon = await readFile(iconFile);
 const encodedIcon = icon.toString('base64');
 const icons = [{src:'data:image/svg+xml;base64,'+encodedIcon,mimeType:'image/svg+xml',sizes:['any']}];
-const server = new McpServer({name:'taskboard',version:'0.7.1',icons});
+const server = new McpServer({name:'taskboard',version:'0.7.2',icons});
 // The SDK omits tool icons from tools/list; expose them at the protocol boundary.
 const registerHandler = server.server.setRequestHandler.bind(server.server);
 server.server.setRequestHandler = (schema,handler) => {
@@ -30,9 +31,9 @@ server.server.setRequestHandler = (schema,handler) => {
   return {...listed,tools};
  });
 };
-new OpenAIExtensions(server);
-const uri = 'ui://taskboard/0.7.1/board.html';
-const panelUri = 'ui://taskboard/0.7.1/panel.html';
+const openaiExtensions = new OpenAIExtensions(server);
+const uri = 'ui://taskboard/0.7.2/board.html';
+const panelUri = 'ui://taskboard/0.7.2/panel.html';
 function registerBoardResource(name,resourceUri,preferredDisplayMode) {
  registerAppResource(server,name,resourceUri,{},async () => {
   const file = new URL('./app.html',import.meta.url);
@@ -45,13 +46,23 @@ registerBoardResource('taskboard-panel',panelUri,'inline');
 const readOnly = {readOnlyHint:true,destructiveHint:false,openWorldHint:false};
 const write = {readOnlyHint:false,destructiveHint:false,openWorldHint:false};
 function result(data) { return {content:[{type:'text',text:'TaskBoard loaded.'}],structuredContent:data}; }
-function handle(callback) { return async args => { try { const data = await callback(args); return result(data); } catch(error) { return {isError:true,content:[{type:'text',text:error.message}]}; } }; }
+function handle(callback) { return async (args,extra) => { try { const data = await callback(args,extra); return result(data); } catch(error) { return {isError:true,content:[{type:'text',text:error.message}]}; } }; }
 function register(name,description,inputSchema,annotations,callback,extra = {},title) {
  registerAppTool(server,name,{title,icons,description,inputSchema,annotations,_meta:{ui:{resourceUri:uri,visibility:['app','model']},...extra}},handle(callback));
 }
-register('taskboard_open','Open TaskBoard fullscreen from the Codex sidebar.',{},readOnly,() => store.read(),{'openai/ui':{entrypoints:[{type:'global'}]}},'TaskBoard');
-register('taskboard_open_panel','Open TaskBoard alongside a Codex chat.',{},readOnly,() => store.read(),{ui:{resourceUri:panelUri,visibility:['app','model']},'openai/ui':{entrypoints:[{type:'thread'}]}},'TaskBoard');
-register('taskboard_read','Read current tasks, project links, revision, and the last agent-refreshed Codex project catalog.',{},readOnly,() => store.read());
+function launchState() { return {connectionRequired:store.configured === false}; }
+function readBoard() { return store.configured ? store.read() : launchState(); }
+register('taskboard_open','Open TaskBoard fullscreen from the Codex sidebar.',{},readOnly,launchState,{'openai/ui':{entrypoints:[{type:'global'}]}},'TaskBoard');
+register('taskboard_open_panel','Open TaskBoard alongside a Codex chat.',{},readOnly,launchState,{ui:{resourceUri:panelUri,visibility:['app','model']},'openai/ui':{entrypoints:[{type:'thread'}]}},'TaskBoard');
+register('taskboard_read','Read current tasks, project links, revision, and the last agent-refreshed Codex project catalog.',{},readOnly,readBoard);
+register('taskboard_connect','Choose and import a private connection file on this Mac.',{},write,async (args,extra) => {
+ const form = connectionFileForm();
+ const selected = await openaiExtensions.elicitInput(form,{timeout:300000,relatedRequestId:extra.requestId});
+ if (selected.action !== 'accept') return {...launchState(),connectionCancelled:true};
+ const connected = await connectFromFile(dataDirectory,selected.content.connectionFile);
+ store = connected.store;
+ return connected.data;
+},{ui:{resourceUri:uri,visibility:['app']}});
 register('taskboard_save','Save board edits from the interactive panel with revision conflict detection.',{state:boardSchema,revision:z.number().int().nonnegative()},write,args => store.save(args.state,args.revision));
 register('taskboard_github_search','Read GitHub issues using the local signed-in GitHub CLI. Search one repository or fetch an issue URL; never writes to GitHub.',{repository:z.string(),query:z.string().max(500)},readOnly,async args => {
  const issueResults = args.query.trim().startsWith('https://') ? [await fetchIssue(args.query.trim())] : await searchIssues(args.repository,args.query);

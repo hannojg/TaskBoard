@@ -25,8 +25,8 @@ The installable bundle is committed under `plugins/taskboard/`, so installation 
 
 1. On a Mac already connected to the board, ask Codex: **“Use the TaskBoard skill to export my private board connection file to Downloads. Do not display the access key.”**
 2. Transfer `TaskBoard-connection.json` privately to the new Mac's Downloads folder.
-3. Install TaskBoard on the new Mac and start a new chat. Ask: **“Use the TaskBoard skill to connect this Mac with ~/Downloads/TaskBoard-connection.json. Do not display the file contents or access key.”**
-4. Reload Codex and open **TaskBoard** from the sidebar.
+3. Install TaskBoard on the new Mac and open it from the sidebar.
+4. On the setup screen, click **Choose connection file** and select the received JSON file. TaskBoard validates the connection and opens your board immediately.
 
 The exported file grants read and write access to the shared board. Keep it private. It is never included in this repository or the plugin bundle.
 

@@ -7,7 +7,9 @@ description: Manage the TaskBoard desktop plugin, organize project backlogs, and
 
 The installed plugin root is two directories above this SKILL.md. Its bundled `scripts/launch-mcp.sh` supplies the Codex Node runtime; no separate Node installation is needed for setup. Run setup commands from the installed plugin root, using shell-quoted absolute file paths.
 
-When the user asks to connect this Mac using a private connection file, run `sh ./scripts/launch-mcp.sh ./scripts/connect.mjs <connection-file-path>`. This imports the Site address and access key, generates a distinct device identity on a new Mac, and preserves this Mac's identity on reconnection. The default received file location is `~/Downloads/TaskBoard-connection.json`; use the path the user supplies. Tell the user to reload Codex after a successful import. Do not attempt to copy another Mac's complete local settings file.
+On an unconnected Mac, opening TaskBoard displays its setup screen. Direct the user to **Choose connection file**, which uses Codex's native file picker. The app-only `taskboard_connect` tool reads the selected local file, validates access before saving, creates this Mac's device identity and opens the shared board. Cancellation and invalid files leave setup usable. Do not call the app-only connector from the model or collect file contents in a chat.
+
+If the user explicitly asks for scripted configuration with a supplied file path, the bundled `scripts/connect.mjs` uses the same connection parser and identity handling. Never copy another Mac's complete local settings file.
 
 When the user asks to connect another Mac or export the shared board connection, run `sh ./scripts/launch-mcp.sh ./scripts/share-connection.mjs`. It creates `~/Downloads/TaskBoard-connection.json`, containing only the shared Site address and access key. An optional output path is accepted. The script may reuse an identical existing export, but it will not overwrite a different connection. Provide the resulting local file link and explain that it should be transferred privately to the other Mac. Never upload, email, or send it without an explicit user request identifying the destination.
 
@@ -15,7 +17,7 @@ Never read the private connection file into the chat or print its contents. Pass
 
 ## Projects and tasks
 
-Use TaskBoard tools as the source of truth for tickets. Open the board with `taskboard_open`; read it before edits to obtain current IDs and revision. Preserve unrelated fields on upserts. If a revision conflict occurs, reread and reapply only the requested change.
+Use TaskBoard tools as the source of truth for tickets. `taskboard_open` opens the view without reading the board. Call `taskboard_read` before edits to obtain current IDs and revision. If it returns `connectionRequired: true`, direct the user to the setup screen. Preserve unrelated fields on upserts. If a revision conflict occurs, reread and reapply only the requested change.
 
 For “sync Codex projects,” discover the host's `list_projects` tool and pass returned Codex projects to `taskboard_sync_projects`, preserving `projectId`, `label`, `path`, `hostId`, and `isGitRepository`. Exclude ChatGPT-only projects. Use returned values, never infer IDs from folder names. Refreshing the catalog does not create projects on the board. If desktop tools are unavailable, state that limitation rather than fabricate a catalog.
 

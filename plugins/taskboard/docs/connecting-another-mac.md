@@ -35,15 +35,13 @@ codex plugin marketplace add hannojg/TaskBoard
 codex plugin add taskboard@taskboard-local
 ```
 
-The repository includes the built plugin. No source build or separate Node installation is required. Start a new Codex chat after installing so its TaskBoard skill is available.
+The repository includes the built plugin. No source build or separate Node installation is required. Open **TaskBoard** from the sidebar after installing.
 
 ## 4. Import the private file
 
-In that new chat, ask:
+TaskBoard opens a **Connect your shared board** screen. Click **Choose connection file** and select the received `TaskBoard-connection.json` in Codex's file picker.
 
-> Use the TaskBoard skill to connect this Mac with ~/Downloads/TaskBoard-connection.json. Run the bundled setup script without displaying the file contents or access key.
-
-If you saved the file elsewhere, give its actual path in the request. Reload Codex after setup, then open **TaskBoard** from the sidebar.
+TaskBoard reads the file locally, checks access to the shared board, saves the connection privately on this Mac, and opens the board immediately. The access key is not sent to the embedded page or chat. If you cancel the picker, the setup screen remains available. If the file is invalid or access fails, the screen explains the problem and lets you choose again; failed validation does not replace existing settings.
 
 Setup generates a distinct identity for the new Mac. Reconnecting a previously configured Mac preserves its existing identity. Connection settings are stored outside the plugin cache with owner-only file permissions, so plugin updates preserve them.
 
@@ -81,7 +79,7 @@ This changes the plugin's update source. It leaves the imported board connection
 ## Troubleshooting
 
 - **The skill is unavailable:** install TaskBoard and start a new Codex chat.
-- **The connection file cannot be found:** check its filename and location, then give the setup prompt its full path.
-- **Access is denied:** obtain a current export from a Mac that can still access the board and import that file.
+- **The connection file cannot be found:** locate the received file in Finder, then select it with **Choose connection file**.
+- **Access is denied:** obtain a current export from a Mac that can still access the board and select that file. Existing settings remain unchanged if validation fails.
 - **The board changed elsewhere:** choose **Refresh board**, then reapply your edit.
 - **Projects have no local folders:** sync this Mac's Codex projects and link them as described above.

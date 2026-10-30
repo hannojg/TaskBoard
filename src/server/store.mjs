@@ -4,6 +4,7 @@ export { boardSchema,catalogSchema,projectSchema,taskSchema } from './schemas.mj
 
 export class Store {
  constructor(connection) { this.connection = connection; }
+ get configured() { return this.connection.url !== undefined && this.connection.token !== undefined; }
  async request(operation,args = {}) {
   const {url,token,deviceId,deviceName} = this.connection;
   if (url === undefined || token === undefined) throw new Error('Connect TaskBoard to the shared board first. Run the bundled scripts/connect.mjs setup.');

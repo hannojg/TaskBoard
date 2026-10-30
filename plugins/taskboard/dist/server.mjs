@@ -2177,9 +2177,9 @@ function parseURLObject(trimmed, def) {
 function stripTabAndNewline(value) {
   return value.replace(asciiTabOrNewline, "");
 }
-function urlHostnameOk(url2, hostname3) {
-  hostname3.lastIndex = 0;
-  return hostname3.test(url2.hostname);
+function urlHostnameOk(url2, hostname4) {
+  hostname4.lastIndex = 0;
+  return hostname4.test(url2.hostname);
 }
 function urlProtocolOk(url2, protocol) {
   protocol.lastIndex = 0;
@@ -27767,6 +27767,69 @@ async function updateImportedIssue(store2, taskId, issue2, revision) {
   return store2.save(current.state, revision);
 }
 
+// src/server/connection.mjs
+import { fileURLToPath } from "node:url";
+
+// scripts/connection.mjs
+import { readFile, writeFile, mkdir, rename } from "node:fs/promises";
+import { homedir, hostname as hostname3 } from "node:os";
+import { join } from "node:path";
+import { randomUUID as randomUUID2 } from "node:crypto";
+async function readConnectionFile(path) {
+  const home2 = homedir();
+  const file2 = path.startsWith("~/") ? join(home2, path.slice(2)) : path;
+  let text;
+  try {
+    text = await readFile(file2, "utf8");
+  } catch {
+    throw new Error("Could not read that connection file. Choose TaskBoard-connection.json from the connected Mac.");
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Choose a valid TaskBoard-connection.json exported from a connected Mac.");
+  }
+}
+async function prepareConnection(input2, directory) {
+  if (input2 === null || typeof input2 !== "object" || typeof input2.url !== "string" || typeof input2.token !== "string") throw new Error("Choose a valid TaskBoard-connection.json exported from a connected Mac.");
+  let url2;
+  try {
+    url2 = new URL(input2.url);
+  } catch {
+    throw new Error("The connection file must contain a valid HTTPS Site address.");
+  }
+  if (url2.protocol !== "https:" || url2.username || url2.password) throw new Error("Use the HTTPS address of your private TaskBoard Site.");
+  const token = input2.token.trim();
+  if (token.length === 0) throw new Error("A Site access key is required.");
+  const path = join(directory, "connection.json");
+  let deviceId;
+  try {
+    const previousText = await readFile(path, "utf8");
+    const previous = JSON.parse(previousText);
+    deviceId = previous.deviceId;
+  } catch (error62) {
+    if (error62.code !== "ENOENT") throw error62;
+  }
+  if (deviceId === void 0) deviceId = randomUUID2();
+  const deviceName = hostname3();
+  return { url: url2.origin, token, deviceId, deviceName };
+}
+async function saveConnection(connection, directory) {
+  const path = join(directory, "connection.json");
+  const text = JSON.stringify(connection, null, 2);
+  await mkdir(directory, { recursive: true, mode: 448 });
+  const temporary = path + "." + randomUUID2();
+  await writeFile(temporary, text + "\n", { mode: 384 });
+  await rename(temporary, path);
+}
+
+// src/server/store.mjs
+import { readFile as readFile2 } from "node:fs/promises";
+import { join as join2 } from "node:path";
+
+// src/column-order.js
+var statusIds = ["backlog", "todo", "progress", "review", "blocked", "done"];
+
 // src/chat-key.js
 function chatKey(chat) {
   if (chat.threadId) return (chat.deviceId || "") + ":" + chat.hostId + ":" + chat.threadId;
@@ -27776,6 +27839,123 @@ function chatKey(chat) {
 // src/server/chats.mjs
 var chatSchema = external_exports.object({ threadId: external_exports.string(), hostId: external_exports.string(), title: external_exports.string(), url: external_exports.string().default(""), deviceId: external_exports.string().default(""), deviceName: external_exports.string().default("") }).refine((chat) => chat.threadId.length > 0 || chat.url.length > 0, { message: "A linked chat needs an ID or an imported URL." });
 var chatCatalogSchema = external_exports.array(external_exports.object({ threadId: external_exports.string().min(1), hostId: external_exports.string().min(1), title: external_exports.string().min(1), projectId: external_exports.string().nullable(), url: external_exports.string().default(""), deviceId: external_exports.string().default(""), deviceName: external_exports.string().default("") }));
+
+// src/server/schemas.mjs
+var bindingSchema = external_exports.object({ deviceId: external_exports.string(), path: external_exports.string(), codexId: external_exports.string(), hostId: external_exports.string() });
+var projectSchema = external_exports.object({ id: external_exports.string().min(1), name: external_exports.string().trim().min(1).max(80), repo: external_exports.string(), path: external_exports.string(), codexId: external_exports.string(), hostId: external_exports.string().default("local"), bindings: external_exports.array(bindingSchema).default([]) });
+var taskSchema = external_exports.object({ id: external_exports.string().min(1), title: external_exports.string().trim().min(1).max(200), description: external_exports.string(), priority: external_exports.enum(["None", "Low", "Medium", "High"]), due: external_exports.string(), projectId: external_exports.string(), statusId: external_exports.enum(["backlog", "todo", "progress", "review", "blocked", "done"]), chats: external_exports.array(chatSchema), issue: issueSchema.nullable().default(null) });
+var boardSchema = external_exports.object({ version: external_exports.literal(3), projects: external_exports.array(projectSchema), tasks: external_exports.array(taskSchema), statusOrder: external_exports.array(external_exports.enum(statusIds)).length(6).refine((order) => new Set(order).size === 6, { message: "Status order must include each status once" }).default(() => [...statusIds]) }).superRefine((board, ctx) => {
+  const projects = /* @__PURE__ */ new Set();
+  for (const project of board.projects) {
+    if (projects.has(project.id)) ctx.addIssue({ code: "custom", message: "Duplicate project ID" });
+    projects.add(project.id);
+  }
+  const tasks = /* @__PURE__ */ new Set();
+  const issues = /* @__PURE__ */ new Set();
+  for (const task of board.tasks) {
+    if (tasks.has(task.id)) ctx.addIssue({ code: "custom", message: "Duplicate task ID" });
+    tasks.add(task.id);
+    if (task.issue) {
+      const key = task.issue.url.toLowerCase();
+      if (issues.has(key)) ctx.addIssue({ code: "custom", message: "This GitHub issue is already imported" });
+      issues.add(key);
+    }
+    const linked = /* @__PURE__ */ new Set();
+    for (const chat of task.chats) {
+      const key = chatKey(chat);
+      if (linked.has(key)) ctx.addIssue({ code: "custom", message: "Duplicate chat relation" });
+      linked.add(key);
+    }
+    if (projects.has(task.projectId) === false) ctx.addIssue({ code: "custom", message: "Task project does not exist" });
+  }
+});
+var catalogSchema = external_exports.array(external_exports.object({ projectId: external_exports.string(), label: external_exports.string(), path: external_exports.string(), hostId: external_exports.string(), isGitRepository: external_exports.boolean() }));
+
+// src/server/store.mjs
+var Store = class {
+  constructor(connection) {
+    this.connection = connection;
+  }
+  get configured() {
+    return this.connection.url !== void 0 && this.connection.token !== void 0;
+  }
+  async request(operation, args = {}) {
+    const { url: url2, token, deviceId, deviceName } = this.connection;
+    if (url2 === void 0 || token === void 0) throw new Error("Connect TaskBoard to the shared board first. Run the bundled scripts/connect.mjs setup.");
+    const endpoint = new URL("/api/board", url2);
+    const encodedName = encodeURIComponent(deviceName);
+    const headers = { "OAI-Sites-Authorization": "Bearer " + token, "X-TaskBoard-Device": deviceId, "X-TaskBoard-Name": encodedName };
+    const options = { headers, redirect: "error", signal: AbortSignal.timeout(2e4) };
+    if (operation !== "read") {
+      headers["Content-Type"] = "application/json";
+      options.method = "POST";
+      options.body = JSON.stringify({ operation, ...args });
+    }
+    let response;
+    try {
+      response = await fetch(endpoint, options);
+    } catch {
+      throw new Error("Could not reach the shared board. Check your connection, then refresh the board.");
+    }
+    if (response.status === 401 || response.status === 403) throw new Error("Shared board access was denied. Check the Site access key in TaskBoard connection settings.");
+    const type = response.headers.get("content-type");
+    if (type === null || type.includes("application/json") === false) throw new Error("The shared board did not return board data. Check the Site address and access key.");
+    const data = await response.json();
+    if (response.ok === false) throw new Error(data.error || "Could not load the shared board.");
+    return data;
+  }
+  read() {
+    return this.request("read");
+  }
+  save(state, revision) {
+    return this.request("save", { state, revision });
+  }
+  syncCatalog(projects) {
+    return this.request("projects", { projects });
+  }
+  syncChats(chats) {
+    return this.request("chats", { chats });
+  }
+  importLocal(snapshot) {
+    return this.request("import", { snapshot });
+  }
+};
+async function loadStore(directory) {
+  const path = join2(directory, "connection.json");
+  let connection;
+  try {
+    const text = await readFile2(path, "utf8");
+    connection = JSON.parse(text);
+  } catch (error62) {
+    if (error62.code !== "ENOENT") throw error62;
+    connection = {};
+  }
+  return new Store(connection);
+}
+
+// src/server/connection.mjs
+async function connectFromFile(directory, uri3) {
+  const selected = new URL(uri3);
+  if (selected.protocol !== "file:") throw new Error("Choose a connection file saved on this Mac.");
+  const path = fileURLToPath(selected);
+  const input2 = await readConnectionFile(path);
+  const connection = await prepareConnection(input2, directory);
+  const store2 = new Store(connection);
+  const data = await store2.read();
+  await saveConnection(connection, directory);
+  return { store: store2, data };
+}
+function connectionFileForm() {
+  return {
+    mode: "form",
+    message: "Choose the private TaskBoard connection file exported from your connected Mac.",
+    requestedSchema: {
+      type: "object",
+      properties: { connectionFile: { type: "string", title: "Connection file", format: "uri", "x-openai-input": { type: "file", options: [], userOptions: { kind: "file", accept: [".json"] } } } },
+      required: ["connectionFile"]
+    }
+  };
+}
 
 // src/server/project-details.mjs
 import { execFile as execFile2 } from "node:child_process";
@@ -27815,9 +27995,9 @@ async function resolveProject(catalog, projectId, hostId) {
 }
 
 // src/server/index.mjs
-import { readFile as readFile2 } from "node:fs/promises";
-import { homedir } from "node:os";
-import { join as join2 } from "node:path";
+import { readFile as readFile3 } from "node:fs/promises";
+import { homedir as homedir2 } from "node:os";
+import { join as join3 } from "node:path";
 
 // node_modules/zod/v3/helpers/util.js
 var util;
@@ -39127,112 +39307,15 @@ var OpenAIExtensions = class {
   }
 };
 
-// src/server/store.mjs
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-
-// src/column-order.js
-var statusIds = ["backlog", "todo", "progress", "review", "blocked", "done"];
-
-// src/server/schemas.mjs
-var bindingSchema = external_exports.object({ deviceId: external_exports.string(), path: external_exports.string(), codexId: external_exports.string(), hostId: external_exports.string() });
-var projectSchema = external_exports.object({ id: external_exports.string().min(1), name: external_exports.string().trim().min(1).max(80), repo: external_exports.string(), path: external_exports.string(), codexId: external_exports.string(), hostId: external_exports.string().default("local"), bindings: external_exports.array(bindingSchema).default([]) });
-var taskSchema = external_exports.object({ id: external_exports.string().min(1), title: external_exports.string().trim().min(1).max(200), description: external_exports.string(), priority: external_exports.enum(["None", "Low", "Medium", "High"]), due: external_exports.string(), projectId: external_exports.string(), statusId: external_exports.enum(["backlog", "todo", "progress", "review", "blocked", "done"]), chats: external_exports.array(chatSchema), issue: issueSchema.nullable().default(null) });
-var boardSchema = external_exports.object({ version: external_exports.literal(3), projects: external_exports.array(projectSchema), tasks: external_exports.array(taskSchema), statusOrder: external_exports.array(external_exports.enum(statusIds)).length(6).refine((order) => new Set(order).size === 6, { message: "Status order must include each status once" }).default(() => [...statusIds]) }).superRefine((board, ctx) => {
-  const projects = /* @__PURE__ */ new Set();
-  for (const project of board.projects) {
-    if (projects.has(project.id)) ctx.addIssue({ code: "custom", message: "Duplicate project ID" });
-    projects.add(project.id);
-  }
-  const tasks = /* @__PURE__ */ new Set();
-  const issues = /* @__PURE__ */ new Set();
-  for (const task of board.tasks) {
-    if (tasks.has(task.id)) ctx.addIssue({ code: "custom", message: "Duplicate task ID" });
-    tasks.add(task.id);
-    if (task.issue) {
-      const key = task.issue.url.toLowerCase();
-      if (issues.has(key)) ctx.addIssue({ code: "custom", message: "This GitHub issue is already imported" });
-      issues.add(key);
-    }
-    const linked = /* @__PURE__ */ new Set();
-    for (const chat of task.chats) {
-      const key = chatKey(chat);
-      if (linked.has(key)) ctx.addIssue({ code: "custom", message: "Duplicate chat relation" });
-      linked.add(key);
-    }
-    if (projects.has(task.projectId) === false) ctx.addIssue({ code: "custom", message: "Task project does not exist" });
-  }
-});
-var catalogSchema = external_exports.array(external_exports.object({ projectId: external_exports.string(), label: external_exports.string(), path: external_exports.string(), hostId: external_exports.string(), isGitRepository: external_exports.boolean() }));
-
-// src/server/store.mjs
-var Store = class {
-  constructor(connection) {
-    this.connection = connection;
-  }
-  async request(operation, args = {}) {
-    const { url: url2, token, deviceId, deviceName } = this.connection;
-    if (url2 === void 0 || token === void 0) throw new Error("Connect TaskBoard to the shared board first. Run the bundled scripts/connect.mjs setup.");
-    const endpoint = new URL("/api/board", url2);
-    const encodedName = encodeURIComponent(deviceName);
-    const headers = { "OAI-Sites-Authorization": "Bearer " + token, "X-TaskBoard-Device": deviceId, "X-TaskBoard-Name": encodedName };
-    const options = { headers, redirect: "error", signal: AbortSignal.timeout(2e4) };
-    if (operation !== "read") {
-      headers["Content-Type"] = "application/json";
-      options.method = "POST";
-      options.body = JSON.stringify({ operation, ...args });
-    }
-    let response;
-    try {
-      response = await fetch(endpoint, options);
-    } catch {
-      throw new Error("Could not reach the shared board. Check your connection, then refresh the board.");
-    }
-    if (response.status === 401 || response.status === 403) throw new Error("Shared board access was denied. Check the Site access key in TaskBoard connection settings.");
-    const type = response.headers.get("content-type");
-    if (type === null || type.includes("application/json") === false) throw new Error("The shared board did not return board data. Check the Site address and access key.");
-    const data = await response.json();
-    if (response.ok === false) throw new Error(data.error || "Could not load the shared board.");
-    return data;
-  }
-  read() {
-    return this.request("read");
-  }
-  save(state, revision) {
-    return this.request("save", { state, revision });
-  }
-  syncCatalog(projects) {
-    return this.request("projects", { projects });
-  }
-  syncChats(chats) {
-    return this.request("chats", { chats });
-  }
-  importLocal(snapshot) {
-    return this.request("import", { snapshot });
-  }
-};
-async function loadStore(directory) {
-  const path = join(directory, "connection.json");
-  let connection;
-  try {
-    const text = await readFile(path, "utf8");
-    connection = JSON.parse(text);
-  } catch (error62) {
-    if (error62.code !== "ENOENT") throw error62;
-    connection = {};
-  }
-  return new Store(connection);
-}
-
 // src/server/index.mjs
-var home = homedir();
-var dataDirectory = process.env.TASKBOARD_DATA_DIR || join2(home, "Library", "Application Support", "TaskBoard");
+var home = homedir2();
+var dataDirectory = process.env.TASKBOARD_DATA_DIR || join3(home, "Library", "Application Support", "TaskBoard");
 var store = await loadStore(dataDirectory);
 var iconFile = new URL("../assets/icon.svg", import.meta.url);
-var icon = await readFile2(iconFile);
+var icon = await readFile3(iconFile);
 var encodedIcon = icon.toString("base64");
 var icons = [{ src: "data:image/svg+xml;base64," + encodedIcon, mimeType: "image/svg+xml", sizes: ["any"] }];
-var server = new McpServer({ name: "taskboard", version: "0.7.1", icons });
+var server = new McpServer({ name: "taskboard", version: "0.7.2", icons });
 var registerHandler = server.server.setRequestHandler.bind(server.server);
 server.server.setRequestHandler = (schema, handler) => {
   if (schema !== ListToolsRequestSchema) return registerHandler(schema, handler);
@@ -39242,13 +39325,13 @@ server.server.setRequestHandler = (schema, handler) => {
     return { ...listed, tools };
   });
 };
-new OpenAIExtensions(server);
-var uri2 = "ui://taskboard/0.7.1/board.html";
-var panelUri = "ui://taskboard/0.7.1/panel.html";
+var openaiExtensions = new OpenAIExtensions(server);
+var uri2 = "ui://taskboard/0.7.2/board.html";
+var panelUri = "ui://taskboard/0.7.2/panel.html";
 function registerBoardResource(name, resourceUri, preferredDisplayMode) {
   N3(server, name, resourceUri, {}, async () => {
     const file2 = new URL("./app.html", import.meta.url);
-    const html = await readFile2(file2, "utf8");
+    const html = await readFile3(file2, "utf8");
     return { contents: [{ uri: resourceUri, mimeType: p, text: html, _meta: { ui: { csp: { connectDomains: [], resourceDomains: [] } }, "openai/ui": { preferredDisplayMode, availableDisplayModes: ["inline", "fullscreen"] } } }] };
   });
 }
@@ -39260,9 +39343,9 @@ function result(data) {
   return { content: [{ type: "text", text: "TaskBoard loaded." }], structuredContent: data };
 }
 function handle(callback) {
-  return async (args) => {
+  return async (args, extra) => {
     try {
-      const data = await callback(args);
+      const data = await callback(args, extra);
       return result(data);
     } catch (error62) {
       return { isError: true, content: [{ type: "text", text: error62.message }] };
@@ -39272,9 +39355,23 @@ function handle(callback) {
 function register(name, description, inputSchema, annotations, callback, extra = {}, title) {
   K3(server, name, { title, icons, description, inputSchema, annotations, _meta: { ui: { resourceUri: uri2, visibility: ["app", "model"] }, ...extra } }, handle(callback));
 }
-register("taskboard_open", "Open TaskBoard fullscreen from the Codex sidebar.", {}, readOnly, () => store.read(), { "openai/ui": { entrypoints: [{ type: "global" }] } }, "TaskBoard");
-register("taskboard_open_panel", "Open TaskBoard alongside a Codex chat.", {}, readOnly, () => store.read(), { ui: { resourceUri: panelUri, visibility: ["app", "model"] }, "openai/ui": { entrypoints: [{ type: "thread" }] } }, "TaskBoard");
-register("taskboard_read", "Read current tasks, project links, revision, and the last agent-refreshed Codex project catalog.", {}, readOnly, () => store.read());
+function launchState() {
+  return { connectionRequired: store.configured === false };
+}
+function readBoard() {
+  return store.configured ? store.read() : launchState();
+}
+register("taskboard_open", "Open TaskBoard fullscreen from the Codex sidebar.", {}, readOnly, launchState, { "openai/ui": { entrypoints: [{ type: "global" }] } }, "TaskBoard");
+register("taskboard_open_panel", "Open TaskBoard alongside a Codex chat.", {}, readOnly, launchState, { ui: { resourceUri: panelUri, visibility: ["app", "model"] }, "openai/ui": { entrypoints: [{ type: "thread" }] } }, "TaskBoard");
+register("taskboard_read", "Read current tasks, project links, revision, and the last agent-refreshed Codex project catalog.", {}, readOnly, readBoard);
+register("taskboard_connect", "Choose and import a private connection file on this Mac.", {}, write, async (args, extra) => {
+  const form = connectionFileForm();
+  const selected = await openaiExtensions.elicitInput(form, { timeout: 3e5, relatedRequestId: extra.requestId });
+  if (selected.action !== "accept") return { ...launchState(), connectionCancelled: true };
+  const connected = await connectFromFile(dataDirectory, selected.content.connectionFile);
+  store = connected.store;
+  return connected.data;
+}, { ui: { resourceUri: uri2, visibility: ["app"] } });
 register("taskboard_save", "Save board edits from the interactive panel with revision conflict detection.", { state: boardSchema, revision: external_exports.number().int().nonnegative() }, write, (args) => store.save(args.state, args.revision));
 register("taskboard_github_search", "Read GitHub issues using the local signed-in GitHub CLI. Search one repository or fetch an issue URL; never writes to GitHub.", { repository: external_exports.string(), query: external_exports.string().max(500) }, readOnly, async (args) => {
   const issueResults = args.query.trim().startsWith("https://") ? [await fetchIssue(args.query.trim())] : await searchIssues(args.repository, args.query);
