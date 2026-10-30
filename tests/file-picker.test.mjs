@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import childProcess from 'node:child_process';
+import { mkdtemp,writeFile,rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chooseConnectionFile } from '../src/server/connection.mjs';
 
@@ -18,7 +21,31 @@ test('the macOS picker returns a file URI and forwards request cancellation',asy
  assert.equal(request.command,'/usr/bin/osascript');
  assert.equal(request.options.signal,controller.signal);
  assert.match(request.args[1],/choose file/);
+ assert.match(request.args[1],/of type \{"public\.json"\}/);
  assert.match(request.args[1],/on error number -128/);
+});
+
+test('the picker accepts the actual macOS type of a JSON connection file',{skip:process.platform !== 'darwin'},async t => {
+ const temporary = tmpdir();
+ const prefix = join(temporary,'taskboard-json-filter-');
+ const directory = await mkdtemp(prefix);
+ t.after(() => rm(directory,{recursive:true}));
+ const path = join(directory,'TaskBoard-connection.json');
+ await writeFile(path,'{}');
+ const infoScript = 'on run argv\nset connectionFile to POSIX file (item 1 of argv)\nreturn type identifier of (info for connectionFile)\nend run';
+ const info = childProcess.execFileSync('/usr/bin/osascript',['-e',infoScript,path],{encoding:'utf8'});
+ const actualType = info.trim();
+ let pickerScript;
+ t.mock.method(childProcess,'execFile',(command,args,options,callback) => {
+  pickerScript = args[1];
+  callback(null,'\n','');
+ });
+ await chooseConnectionFile();
+ const declaration = pickerScript.match(/of type \{([^}]+)\}/);
+ assert.ok(declaration);
+ const allowed = JSON.parse('['+declaration[1]+']');
+ const selectable = allowed.includes(actualType);
+ assert.equal(selectable,true,'The native picker filter must accept the file type reported by macOS: '+actualType);
 });
 
 test('cancelling the macOS picker returns no connection',async t => {

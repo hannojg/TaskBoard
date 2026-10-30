@@ -18,7 +18,7 @@ export async function connectFromFile(directory,uri) {
 export async function chooseConnectionFile(signal) {
  const script = `try
  activate
- set connectionFile to choose file with prompt "Choose TaskBoard-connection.json to connect your shared board." of type {"json"} default location (path to downloads folder)
+ set connectionFile to choose file with prompt "Choose TaskBoard-connection.json to connect your shared board." of type {"public.json"} default location (path to downloads folder)
  return POSIX path of connectionFile
 on error number -128
  return ""
