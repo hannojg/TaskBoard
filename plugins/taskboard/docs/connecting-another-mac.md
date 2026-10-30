@@ -39,7 +39,7 @@ The repository includes the built plugin. No source build or separate Node insta
 
 ## 4. Import the private file
 
-TaskBoard opens a welcome screen with two choices. Click **Connect to an existing board** and select the received `TaskBoard-connection.json` in Codex's file picker. **Create a new board** creates separate storage; use the connection option to share the board you already have.
+TaskBoard opens a welcome screen with two choices. Click **Connect to an existing board** and select the received `TaskBoard-connection.json` in the native macOS file picker. **Create a new board** creates separate storage; use the connection option to share the board you already have.
 
 TaskBoard reads the file locally, checks access to the shared board, saves the connection privately on this Mac, and opens the board immediately. The access key is not sent to the embedded page or chat. If you cancel the picker, the setup screen remains available. If the file is invalid or access fails, the screen explains the problem and lets you choose again; failed validation does not replace existing settings.
 

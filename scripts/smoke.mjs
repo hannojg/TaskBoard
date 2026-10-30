@@ -32,7 +32,7 @@ try {
  assert.equal(panelResource.contents[0]._meta['openai/ui'].preferredDisplayMode,'inline');
  const opened = await client.callTool({name:'taskboard_open',arguments:{}}); const launch = data(opened); assert.equal(launch.connectionRequired,false);
  const initialRead = await client.callTool({name:'taskboard_read',arguments:{}}); let board = data(initialRead); assert.equal(board.revision,0);
- const resource = await client.readResource({uri:'ui://taskboard/0.8.0/board.html'}); assert.match(resource.contents[0].text,/description-editor/);
+ const resource = await client.readResource({uri:'ui://taskboard/0.8.1/board.html'}); assert.match(resource.contents[0].text,/description-editor/);
  const synced = await client.callTool({name:'taskboard_sync_projects',arguments:{projects:[{projectId:'verified-p',label:'Example',path:'/repo',hostId:'local',isGitRepository:true}]}}); board = data(synced); assert.equal(board.catalog.length,1);
  const chatSync = await client.callTool({name:'taskboard_sync_chats',arguments:{chats:[{threadId:'confirmed-chat',hostId:'local',title:'Confirmed chat',projectId:'verified-p'}]}}); board = data(chatSync); assert.equal(board.chatCatalog.length,1);
  const project = {id:'p',name:'Example',repo:'',path:'/repo',codexId:'verified-p',hostId:'local',chat:''};

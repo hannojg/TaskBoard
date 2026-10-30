@@ -9,7 +9,7 @@ First launch offers **Create a new board** and **Connect to an existing board**.
 
 The installed plugin root is two directories above this SKILL.md. Its bundled `scripts/launch-mcp.sh` supplies the Codex Node runtime; no separate Node installation is needed for setup. Run setup commands from the installed plugin root, using shell-quoted absolute file paths.
 
-On an unconnected Mac, opening TaskBoard displays its setup screen. **Connect to an existing board** uses Codex's native file picker. The app-only `taskboard_connect` tool reads the selected local file, validates access before saving, creates this Mac's device identity and opens the shared board. Cancellation and invalid files leave setup usable. Do not call the app-only connector from the model or collect file contents in a chat.
+On an unconnected Mac, opening TaskBoard displays its setup screen. **Connect to an existing board** uses the native macOS file picker. The app-only `taskboard_connect` tool reads the selected local file, validates access before saving, creates this Mac's device identity and opens the shared board. Cancellation and invalid files leave setup usable. Do not call the app-only connector from the model or collect file contents in a chat.
 
 If the user explicitly asks for scripted configuration with a supplied file path, the bundled `scripts/connect.mjs` uses the same connection parser and identity handling. Never copy another Mac's complete local settings file.
 

@@ -5,10 +5,9 @@ import { tmpdir } from 'node:os';
 import { join,resolve } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { z } from 'zod';
 import { sharedFixture } from './support/shared.mjs';
 
-async function fixture(t,configured = false) {
+async function fixture(t,configured = false,cancelPicker = false) {
  const temporary = tmpdir();
  const directory = await mkdtemp(join(temporary,'taskboard-first-launch-'));
  if (configured) {
@@ -17,8 +16,14 @@ async function fixture(t,configured = false) {
   await writeFile(path,text);
  }
  const server = resolve('plugins/taskboard/dist/server.mjs');
- const transport = new StdioClientTransport({command:process.execPath,args:[server],env:{...process.env,TASKBOARD_DATA_DIR:directory},stderr:'pipe'});
- const client = new Client({name:'first-launch-check',version:'1.0.0'},{capabilities:{extensions:{'openai/elicitation':{form:{}}}}});
+ const args = [];
+ if (cancelPicker) {
+  const preload = resolve('tests/support/cancel-picker.mjs');
+  args.push('--import',preload);
+ }
+ args.push(server);
+ const transport = new StdioClientTransport({command:process.execPath,args,env:{...process.env,TASKBOARD_DATA_DIR:directory},stderr:'pipe'});
+ const client = new Client({name:'first-launch-check',version:'1.0.0'});
  t.after(async () => { await client.close(); await rm(directory,{recursive:true}); });
  return {client,transport,directory};
 }
@@ -64,21 +69,12 @@ test('creation requests are reused and notice a completed connection without rel
  assert.deepEqual(launch.structuredContent,{connectionRequired:false});
 });
 
-test('cancelling the native connection picker leaves the first-launch view usable',async t => {
- const {client,transport,directory} = await fixture(t);
- const requestSchema = z.object({method:z.literal('openai/elicitation/create'),params:z.any()});
- let requestedForm;
- client.setRequestHandler(requestSchema,async request => {
-  requestedForm = request.params;
-  return {action:'cancel'};
- });
+test('the connection tool uses the local picker without chat elicitation capabilities',async t => {
+ const {client,transport,directory} = await fixture(t,false,true);
  await client.connect(transport);
  const result = await client.callTool({name:'taskboard_connect',arguments:{}});
  assert.notEqual(result.isError,true);
  assert.deepEqual(result.structuredContent,{connectionRequired:true,connectionCancelled:true});
- const field = requestedForm.requestedSchema.properties.connectionFile;
- assert.equal(field.format,'uri');
- assert.deepEqual(field['x-openai-input'].userOptions,{kind:'file',accept:['.json']});
  const listed = await client.listTools();
  const connector = listed.tools.find(tool => tool.name === 'taskboard_connect');
  assert.deepEqual(connector._meta.ui.visibility,['app']);

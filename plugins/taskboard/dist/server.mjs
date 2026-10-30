@@ -1481,8 +1481,8 @@ function anchor(source) {
 }
 function timeSource(args) {
   const hhmm = `(?:[01]\\d|2[0-3]):[0-5]\\d`;
-  const regex2 = typeof args.precision === "number" ? args.precision === -1 ? `${hhmm}` : args.precision === 0 ? `${hhmm}:[0-5]\\d` : `${hhmm}:[0-5]\\d\\.\\d{${args.precision}}` : args.seconds ? `${hhmm}:[0-5]\\d(?:\\.\\d+)?` : `${hhmm}(?::[0-5]\\d(?:\\.\\d+)?)?`;
-  return regex2;
+  const regex = typeof args.precision === "number" ? args.precision === -1 ? `${hhmm}` : args.precision === 0 ? `${hhmm}:[0-5]\\d` : `${hhmm}:[0-5]\\d\\.\\d{${args.precision}}` : args.seconds ? `${hhmm}:[0-5]\\d(?:\\.\\d+)?` : `${hhmm}(?::[0-5]\\d(?:\\.\\d+)?)?`;
+  return regex;
 }
 function time(args) {
   return new RegExp(`^${timeSource(args)}$`);
@@ -1550,8 +1550,8 @@ var init_regexes = __esm({
     date = /* @__PURE__ */ anchor(dateSource);
     anyString = /^[\s\S]{0,}$/;
     string = (params) => {
-      const regex2 = params ? `[\\s\\S]{${params?.minimum ?? 0},${params?.maximum ?? ""}}` : `[\\s\\S]*`;
-      return new RegExp(`^${regex2}$`);
+      const regex = params ? `[\\s\\S]{${params?.minimum ?? 0},${params?.maximum ?? ""}}` : `[\\s\\S]*`;
+      return new RegExp(`^${regex}$`);
     };
     bigint = /^-?\d+n?$/;
     integer = /^-?\d+$/;
@@ -13220,8 +13220,8 @@ function generateMultipleOfCheck(doc, ctx, def, accessor) {
   }
 }
 function generateNumberFormatCheck(doc, def, accessor) {
-  const format2 = def.format;
-  switch (format2) {
+  const format = def.format;
+  switch (format) {
     case "safeint":
       doc.write(`if (!Number.isSafeInteger(${accessor})) return INVALID;`);
       break;
@@ -13238,16 +13238,16 @@ function generateNumberFormatCheck(doc, def, accessor) {
       doc.write(`if (!Number.isFinite(${accessor})) return INVALID;`);
       break;
     default: {
-      void format2;
-      throw new ZodCompileUnsupportedError(`number format ${format2}`);
+      void format;
+      throw new ZodCompileUnsupportedError(`number format ${format}`);
     }
   }
 }
 function generateBigIntFormatCheck(doc, def, accessor) {
-  const format2 = def.format;
-  if (!format2)
+  const format = def.format;
+  if (!format)
     return;
-  switch (format2) {
+  switch (format) {
     case "int64":
       doc.write(`if (${accessor} < -9223372036854775808n || ${accessor} > 9223372036854775807n) return INVALID;`);
       break;
@@ -13255,8 +13255,8 @@ function generateBigIntFormatCheck(doc, def, accessor) {
       doc.write(`if (${accessor} < 0n || ${accessor} > 18446744073709551615n) return INVALID;`);
       break;
     default: {
-      void format2;
-      throw new ZodCompileUnsupportedError(`bigint format ${format2}`);
+      void format;
+      throw new ZodCompileUnsupportedError(`bigint format ${format}`);
     }
   }
 }
@@ -13411,8 +13411,8 @@ function generateStringFormatCheck(doc, ctx, def, accessor, needsValue = true) {
     doc.write(`if (!${patternConst}.test(${accessor})) return INVALID;`);
     return accessor;
   }
-  const format2 = def.format;
-  switch (format2) {
+  const format = def.format;
+  switch (format) {
     case "regex":
       throw new ZodCompileUnsupportedError("regex format without a pattern");
     case "lowercase":
@@ -13435,8 +13435,8 @@ function generateStringFormatCheck(doc, ctx, def, accessor, needsValue = true) {
       break;
     }
     default: {
-      void format2;
-      throw new ZodCompileUnsupportedError(`string format ${format2}`);
+      void format;
+      throw new ZodCompileUnsupportedError(`string format ${format}`);
     }
   }
   return accessor;
@@ -15580,12 +15580,12 @@ function _stringbool(Classes, _params) {
   return codec2;
 }
 // @__NO_SIDE_EFFECTS__
-function _stringFormat(Class2, format2, fnOrRegex, _params = {}) {
+function _stringFormat(Class2, format, fnOrRegex, _params = {}) {
   const params = normalizeParams(_params);
   const def = {
     check: "string_format",
     type: "string",
-    format: format2,
+    format,
     fn: typeof fnOrRegex === "function" ? fnOrRegex : (val) => fnOrRegex.test(val),
     ...params
   };
@@ -16212,7 +16212,7 @@ function stringifyKeyNames(bySchema, json2, visited) {
   const values = json2.enum ?? (json2.const !== void 0 ? [json2.const] : void 0);
   if (!numericType && !values?.some((v2) => typeof v2 === "number"))
     return json2;
-  const { minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf, format: format2, id, ...rest } = json2;
+  const { minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf, format, id, ...rest } = json2;
   if (rest.enum)
     rest.enum = rest.enum.map((v2) => typeof v2 === "number" ? String(v2) : v2);
   else if (typeof rest.const === "number")
@@ -16328,9 +16328,9 @@ var init_json_schema_processors = __esm({
     intersectMime = (agg, mime) => {
       agg.mime = agg.mime ? agg.mime.filter((m2) => mime.includes(m2)) : [...mime];
     };
-    setFormat = (agg, format2) => {
-      agg.format = format2;
-      if (format2.includes("int"))
+    setFormat = (agg, format) => {
+      agg.format = format;
+      if (format.includes("int"))
         agg.isInt = true;
     };
     minContributor = (agg, def) => narrowMin(agg, "minimum", def.minimum);
@@ -16380,16 +16380,16 @@ var init_json_schema_processors = __esm({
     stringProcessor = (schema, ctx, _json, _params) => {
       const json2 = _json;
       json2.type = "string";
-      const { minimum, maximum, format: format2, patterns, contentEncoding, laxFormat } = aggregateChecks(schema);
+      const { minimum, maximum, format, patterns, contentEncoding, laxFormat } = aggregateChecks(schema);
       if (typeof minimum === "number")
         json2.minLength = minimum;
       if (typeof maximum === "number")
         json2.maxLength = maximum;
-      if (format2) {
-        json2.format = formatMap[format2] ?? format2;
+      if (format) {
+        json2.format = formatMap[format] ?? format;
         if (json2.format === "")
           delete json2.format;
-        if (format2 === "time" || laxFormat) {
+        if (format === "time" || laxFormat) {
           delete json2.format;
         }
       }
@@ -16401,9 +16401,9 @@ var init_json_schema_processors = __esm({
           json2.pattern = patternList[0].source;
         else if (patternList.length > 1) {
           json2.allOf = [
-            ...patternList.map((regex2) => ({
+            ...patternList.map((regex) => ({
               ...ctx.target === "draft-07" || ctx.target === "draft-04" || ctx.target === "openapi-3.0" ? { type: "string" } : {},
-              pattern: regex2.source
+              pattern: regex.source
             }))
           ];
         }
@@ -17407,15 +17407,15 @@ var init_errors2 = __esm({
       if (_installedErrorProtos.has(proto))
         return;
       _installedErrorProtos.add(proto);
-      _lazyMethod(proto, "format", (self2) => (mapper) => formatError(self2, mapper));
-      _lazyMethod(proto, "flatten", (self2) => (mapper) => flattenError(self2, mapper));
-      _lazyMethod(proto, "addIssue", (self2) => (issue2) => {
-        self2.issues.push(issue2);
-        self2.message = JSON.stringify(self2.issues, jsonStringifyReplacer, 2);
+      _lazyMethod(proto, "format", (self) => (mapper) => formatError(self, mapper));
+      _lazyMethod(proto, "flatten", (self) => (mapper) => flattenError(self, mapper));
+      _lazyMethod(proto, "addIssue", (self) => (issue2) => {
+        self.issues.push(issue2);
+        self.message = JSON.stringify(self.issues, jsonStringifyReplacer, 2);
       });
-      _lazyMethod(proto, "addIssues", (self2) => (issues2) => {
-        self2.issues.push(...issues2);
-        self2.message = JSON.stringify(self2.issues, jsonStringifyReplacer, 2);
+      _lazyMethod(proto, "addIssues", (self) => (issues2) => {
+        self.issues.push(...issues2);
+        self.message = JSON.stringify(self.issues, jsonStringifyReplacer, 2);
       });
       Object.defineProperty(proto, "isEmpty", {
         configurable: true,
@@ -17727,8 +17727,8 @@ function iban2(params) {
 function jwt(params) {
   return _jwt(ZodJWT, params);
 }
-function stringFormat(format2, fnOrRegex, _params = {}) {
-  return _stringFormat(ZodCustomStringFormat, format2, fnOrRegex, _params);
+function stringFormat(format, fnOrRegex, _params = {}) {
+  return _stringFormat(ZodCustomStringFormat, format, fnOrRegex, _params);
 }
 function hostname2(_params) {
   return _stringFormat(ZodCustomStringFormat, "hostname", hostname, _params);
@@ -17741,11 +17741,11 @@ function currencyCode2(_params) {
 }
 function hash(alg, params) {
   const enc = params?.enc ?? "hex";
-  const format2 = `${alg}_${enc}`;
-  const regex2 = regexes_exports[format2];
-  if (!regex2)
-    throw new Error(`Unrecognized hash format: ${format2}`);
-  return _stringFormat(ZodCustomStringFormat, format2, regex2, params);
+  const format = `${alg}_${enc}`;
+  const regex = regexes_exports[format];
+  if (!regex)
+    throw new Error(`Unrecognized hash format: ${format}`);
+  return _stringFormat(ZodCustomStringFormat, format, regex, params);
 }
 function number2(params) {
   return _number(ZodNumber, params);
@@ -18779,7 +18779,7 @@ var init_schemas2 = __esm({
       $ZodObjectJIT.init(inst, def);
       ZodType.init(inst, def);
       inst._zod.processJSONSchema = (ctx, json2, params) => objectProcessor(inst, ctx, json2, params);
-      util_exports.installLazyProp(inst, "shape", (self2) => self2._zod.def.shape, false);
+      util_exports.installLazyProp(inst, "shape", (self) => self._zod.def.shape, false);
     }, {
       keyof() {
         return _enum2(Object.keys(this._zod.def.shape));
@@ -19461,58 +19461,58 @@ function convertBaseSchema(schema, ctx) {
     case "string": {
       let stringSchema = z.string();
       if (schema.format) {
-        const format2 = schema.format;
-        if (format2 === "email") {
+        const format = schema.format;
+        if (format === "email") {
           stringSchema = stringSchema.check(z.email());
-        } else if (format2 === "uri" || format2 === "uri-reference") {
+        } else if (format === "uri" || format === "uri-reference") {
           stringSchema = stringSchema.check(z.url());
-        } else if (format2 === "uuid" || format2 === "guid") {
+        } else if (format === "uuid" || format === "guid") {
           stringSchema = stringSchema.check(z.uuid());
-        } else if (format2 === "date-time") {
+        } else if (format === "date-time") {
           stringSchema = stringSchema.check(z.iso.datetime({ offset: true }));
-        } else if (format2 === "date") {
+        } else if (format === "date") {
           stringSchema = stringSchema.check(z.iso.date());
-        } else if (format2 === "time") {
+        } else if (format === "time") {
           stringSchema = stringSchema.check(z.regex(fullTime));
-        } else if (format2 === "duration") {
+        } else if (format === "duration") {
           stringSchema = stringSchema.check(z.iso.duration());
-        } else if (format2 === "hostname") {
+        } else if (format === "hostname") {
           stringSchema = stringSchema.check(z.hostname());
-        } else if (format2 === "ipv4") {
+        } else if (format === "ipv4") {
           stringSchema = stringSchema.check(z.ipv4());
-        } else if (format2 === "ipv6") {
+        } else if (format === "ipv6") {
           stringSchema = stringSchema.check(z.ipv6());
-        } else if (format2 === "mac") {
+        } else if (format === "mac") {
           stringSchema = stringSchema.check(z.mac());
-        } else if (format2 === "cidr") {
+        } else if (format === "cidr") {
           stringSchema = stringSchema.check(z.cidrv4());
-        } else if (format2 === "cidr-v6") {
+        } else if (format === "cidr-v6") {
           stringSchema = stringSchema.check(z.cidrv6());
-        } else if (format2 === "base64") {
+        } else if (format === "base64") {
           stringSchema = stringSchema.check(z.base64());
-        } else if (format2 === "base64url") {
+        } else if (format === "base64url") {
           stringSchema = stringSchema.check(z.base64url());
-        } else if (format2 === "e164") {
+        } else if (format === "e164") {
           stringSchema = stringSchema.check(z.e164());
-        } else if (format2 === "credit_card") {
+        } else if (format === "credit_card") {
           stringSchema = stringSchema.check(z.creditCard());
-        } else if (format2 === "iban") {
+        } else if (format === "iban") {
           stringSchema = stringSchema.check(z.iban());
-        } else if (format2 === "jwt") {
+        } else if (format === "jwt") {
           stringSchema = stringSchema.check(z.jwt());
-        } else if (format2 === "emoji") {
+        } else if (format === "emoji") {
           stringSchema = stringSchema.check(z.emoji());
-        } else if (format2 === "nanoid") {
+        } else if (format === "nanoid") {
           stringSchema = stringSchema.check(z.nanoid());
-        } else if (format2 === "cuid") {
+        } else if (format === "cuid") {
           stringSchema = stringSchema.check(z.cuid());
-        } else if (format2 === "cuid2") {
+        } else if (format === "cuid2") {
           stringSchema = stringSchema.check(z.cuid2());
-        } else if (format2 === "ulid") {
+        } else if (format === "ulid") {
           stringSchema = stringSchema.check(z.ulid());
-        } else if (format2 === "xid") {
+        } else if (format === "xid") {
           stringSchema = stringSchema.check(z.xid());
-        } else if (format2 === "ksuid") {
+        } else if (format === "ksuid") {
           stringSchema = stringSchema.check(z.ksuid());
         }
       }
@@ -19606,7 +19606,7 @@ function convertBaseSchema(schema, ctx) {
             for (const key of Object.keys(payload.value)) {
               if (propertyKeys.includes(key))
                 continue;
-              if (patterns.some((regex2) => regex2.test(key)))
+              if (patterns.some((regex) => regex.test(key)))
                 continue;
               unrecognized.push(key);
             }
@@ -21506,12 +21506,12 @@ var require_util = __commonJS({
     }
     exports.alwaysValidSchema = alwaysValidSchema;
     function checkUnknownRules(it, schema = it.schema) {
-      const { opts, self: self2 } = it;
+      const { opts, self } = it;
       if (!opts.strictSchema)
         return;
       if (typeof schema === "boolean")
         return;
-      const rules = self2.RULES.keywords;
+      const rules = self.RULES.keywords;
       for (const key in schema) {
         if (!rules[key])
           checkStrictMode(it, `unknown keyword: "${key}"`);
@@ -21897,8 +21897,8 @@ var require_applicability = __commonJS({
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.shouldUseRule = exports.shouldUseGroup = exports.schemaHasRulesForType = void 0;
-    function schemaHasRulesForType({ schema, self: self2 }, type) {
-      const group = self2.RULES.types[type];
+    function schemaHasRulesForType({ schema, self }, type) {
+      const group = self.RULES.types[type];
       return group && group !== true && shouldUseGroup(schema, group);
     }
     exports.schemaHasRulesForType = schemaHasRulesForType;
@@ -22299,8 +22299,8 @@ var require_keyword = __commonJS({
       var _a3;
       const { gen, keyword, schema, parentSchema, $data, it } = cxt;
       checkAsyncKeyword(it, def);
-      const validate3 = !$data && def.compile ? def.compile.call(it.self, schema, parentSchema, it) : def.validate;
-      const validateRef = useKeyword(gen, keyword, validate3);
+      const validate2 = !$data && def.compile ? def.compile.call(it.self, schema, parentSchema, it) : def.validate;
+      const validateRef = useKeyword(gen, keyword, validate2);
       const valid = gen.let("valid");
       cxt.block$data(valid, validateKeyword);
       cxt.ok((_a3 = def.valid) !== null && _a3 !== void 0 ? _a3 : valid);
@@ -22363,7 +22363,7 @@ var require_keyword = __commonJS({
       return !schemaType.length || schemaType.some((st) => st === "array" ? Array.isArray(schema) : st === "object" ? schema && typeof schema == "object" && !Array.isArray(schema) : typeof schema == st || allowUndefined && typeof schema == "undefined");
     }
     exports.validSchemaType = validSchemaType;
-    function validateKeywordUsage({ schema, opts, self: self2, errSchemaPath }, def, keyword) {
+    function validateKeywordUsage({ schema, opts, self, errSchemaPath }, def, keyword) {
       if (Array.isArray(def.keyword) ? !def.keyword.includes(keyword) : def.keyword !== keyword) {
         throw new Error("ajv implementation error");
       }
@@ -22374,9 +22374,9 @@ var require_keyword = __commonJS({
       if (def.validateSchema) {
         const valid = def.validateSchema(schema[keyword]);
         if (!valid) {
-          const msg = `keyword "${keyword}" value is invalid at path "${errSchemaPath}": ` + self2.errorsText(def.validateSchema.errors);
+          const msg = `keyword "${keyword}" value is invalid at path "${errSchemaPath}": ` + self.errorsText(def.validateSchema.errors);
           if (opts.validateSchema === "log")
-            self2.logger.error(msg);
+            self.logger.error(msg);
           else
             throw new Error(msg);
         }
@@ -22843,11 +22843,11 @@ var require_validate = __commonJS({
       }
       (0, boolSchema_1.boolOrEmptySchema)(it, valid);
     }
-    function schemaCxtHasRules({ schema, self: self2 }) {
+    function schemaCxtHasRules({ schema, self }) {
       if (typeof schema == "boolean")
         return !schema;
       for (const key in schema)
-        if (self2.RULES.all[key])
+        if (self.RULES.all[key])
           return true;
       return false;
     }
@@ -22876,9 +22876,9 @@ var require_validate = __commonJS({
       schemaKeywords(it, types, !checkedTypes, errsCount);
     }
     function checkRefsAndKeywords(it) {
-      const { schema, errSchemaPath, opts, self: self2 } = it;
-      if (schema.$ref && opts.ignoreKeywordsWithRef && (0, util_1.schemaHasRulesButRef)(schema, self2.RULES)) {
-        self2.logger.warn(`$ref: keywords ignored in schema at path "${errSchemaPath}"`);
+      const { schema, errSchemaPath, opts, self } = it;
+      if (schema.$ref && opts.ignoreKeywordsWithRef && (0, util_1.schemaHasRulesButRef)(schema, self.RULES)) {
+        self.logger.warn(`$ref: keywords ignored in schema at path "${errSchemaPath}"`);
       }
     }
     function checkNoDefault(it) {
@@ -22924,8 +22924,8 @@ var require_validate = __commonJS({
         gen.assign((0, codegen_1._)`${evaluated}.items`, items);
     }
     function schemaKeywords(it, types, typeErrors, errsCount) {
-      const { gen, schema, data, allErrors, opts, self: self2 } = it;
-      const { RULES } = self2;
+      const { gen, schema, data, allErrors, opts, self } = it;
+      const { RULES } = self;
       if (schema.$ref && (opts.ignoreKeywordsWithRef || !(0, util_1.schemaHasRulesButRef)(schema, RULES))) {
         gen.block(() => keywordCode(it, "$ref", RULES.all.$ref.definition));
         return;
@@ -23210,20 +23210,20 @@ var require_validate = __commonJS({
         (0, keyword_1.funcKeywordCode)(cxt, def);
       }
     }
-    var JSON_POINTER2 = /^\/(?:[^~]|~0|~1)*$/;
-    var RELATIVE_JSON_POINTER2 = /^([0-9]+)(#|\/(?:[^~]|~0|~1)*)?$/;
+    var JSON_POINTER = /^\/(?:[^~]|~0|~1)*$/;
+    var RELATIVE_JSON_POINTER = /^([0-9]+)(#|\/(?:[^~]|~0|~1)*)?$/;
     function getData($data, { dataLevel, dataNames, dataPathArr }) {
       let jsonPointer;
       let data;
       if ($data === "")
         return names_1.default.rootData;
       if ($data[0] === "/") {
-        if (!JSON_POINTER2.test($data))
+        if (!JSON_POINTER.test($data))
           throw new Error(`Invalid JSON-pointer: ${$data}`);
         jsonPointer = $data;
         data = names_1.default.rootData;
       } else {
-        const matches = RELATIVE_JSON_POINTER2.exec($data);
+        const matches = RELATIVE_JSON_POINTER.exec($data);
         if (!matches)
           throw new Error(`Invalid JSON-pointer: ${$data}`);
         const up = +matches[1];
@@ -23373,28 +23373,28 @@ var require_compile = __commonJS({
         if (this.opts.code.process)
           sourceCode = this.opts.code.process(sourceCode, sch);
         const makeValidate = new Function(`${names_1.default.self}`, `${names_1.default.scope}`, sourceCode);
-        const validate3 = makeValidate(this, this.scope.get());
-        this.scope.value(validateName, { ref: validate3 });
-        validate3.errors = null;
-        validate3.schema = sch.schema;
-        validate3.schemaEnv = sch;
+        const validate2 = makeValidate(this, this.scope.get());
+        this.scope.value(validateName, { ref: validate2 });
+        validate2.errors = null;
+        validate2.schema = sch.schema;
+        validate2.schemaEnv = sch;
         if (sch.$async)
-          validate3.$async = true;
+          validate2.$async = true;
         if (this.opts.code.source === true) {
-          validate3.source = { validateName, validateCode, scopeValues: gen._values };
+          validate2.source = { validateName, validateCode, scopeValues: gen._values };
         }
         if (this.opts.unevaluated) {
           const { props, items } = schemaCxt;
-          validate3.evaluated = {
+          validate2.evaluated = {
             props: props instanceof codegen_1.Name ? void 0 : props,
             items: items instanceof codegen_1.Name ? void 0 : items,
             dynamicProps: props instanceof codegen_1.Name,
             dynamicItems: items instanceof codegen_1.Name
           };
-          if (validate3.source)
-            validate3.source.evaluated = (0, codegen_1.stringify)(validate3.evaluated);
+          if (validate2.source)
+            validate2.source.evaluated = (0, codegen_1.stringify)(validate2.evaluated);
         }
-        sch.validate = validate3;
+        sch.validate = validate2;
         return sch;
       } catch (e) {
         delete sch.validate;
@@ -24294,15 +24294,15 @@ var require_fast_uri = __commonJS({
       }
       return stringScheme;
     }
-    function normalize2(uri3, options) {
-      if (typeof uri3 === "string") {
-        uri3 = /** @type {T} */
-        normalizeString(uri3, options);
-      } else if (typeof uri3 === "object") {
-        uri3 = /** @type {T} */
-        parse3(serialize(uri3, options), options);
+    function normalize2(uri2, options) {
+      if (typeof uri2 === "string") {
+        uri2 = /** @type {T} */
+        normalizeString(uri2, options);
+      } else if (typeof uri2 === "object") {
+        uri2 = /** @type {T} */
+        parse3(serialize(uri2, options), options);
       }
-      return uri3;
+      return uri2;
     }
     function resolve(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
@@ -24527,7 +24527,7 @@ var require_fast_uri = __commonJS({
     function isHostOnlyURL(url2) {
       return url2.username === "" && url2.password === "" && url2.port === "" && url2.pathname === "/" && url2.search === "" && url2.hash === "" && url2.hostname !== "";
     }
-    function parseWithStatus(uri3, opts) {
+    function parseWithStatus(uri2, opts) {
       const options = Object.assign({}, opts);
       const parsed = {
         scheme: void 0,
@@ -24547,17 +24547,17 @@ var require_fast_uri = __commonJS({
       let isIP = false;
       if (options.reference === "suffix") {
         if (options.scheme) {
-          uri3 = options.scheme + ":" + uri3;
+          uri2 = options.scheme + ":" + uri2;
         } else {
-          uri3 = "//" + uri3;
+          uri2 = "//" + uri2;
         }
       }
-      const authorityMatch = uri3.match(AUTHORITY_PREFIX);
+      const authorityMatch = uri2.match(AUTHORITY_PREFIX);
       if (authorityMatch !== null && authorityMatch[1].indexOf("\\") !== -1) {
         parsed.error = "URI authority must not contain a literal backslash.";
         malformedAuthorityOrPort = true;
       }
-      const introducerMatch = uri3.match(AUTHORITY_INTRODUCER_REGION);
+      const introducerMatch = uri2.match(AUTHORITY_INTRODUCER_REGION);
       if (introducerMatch !== null) {
         const region = introducerMatch[1];
         const normalizedRegion = region.replace(/[\t\n\r]/g, "");
@@ -24571,7 +24571,7 @@ var require_fast_uri = __commonJS({
           }
         }
       }
-      const matches = uri3.match(URI_PARSE);
+      const matches = uri2.match(URI_PARSE);
       if (matches) {
         parsed.scheme = matches[1];
         parsed.userinfo = matches[3];
@@ -24633,7 +24633,7 @@ var require_fast_uri = __commonJS({
         if (!malformedIPLiteral) {
           malformedHost = canonicalizeHost(parsed, options, schemeHandler, isIP);
         }
-        if (uri3.indexOf("%") !== -1 && parsed.host !== void 0 && !malformedIPLiteral) {
+        if (uri2.indexOf("%") !== -1 && parsed.host !== void 0 && !malformedIPLiteral) {
           let host = isIP ? parsed.host : normalizePercentEncoding(parsed.host, true);
           if (!isIP) {
             host = normalizePercentEncoding(host.toLowerCase());
@@ -24662,16 +24662,16 @@ var require_fast_uri = __commonJS({
       }
       return { parsed, malformedAuthorityOrPort, malformedPercentEncoding, malformedSchemeSpecific, malformedHost, malformedScheme };
     }
-    function parse3(uri3, opts) {
-      return parseWithStatus(uri3, opts).parsed;
+    function parse3(uri2, opts) {
+      return parseWithStatus(uri2, opts).parsed;
     }
-    function normalizeString(uri3, opts) {
-      return normalizeStringWithStatus(uri3, opts).normalized;
+    function normalizeString(uri2, opts) {
+      return normalizeStringWithStatus(uri2, opts).normalized;
     }
-    function normalizeStringWithStatus(uri3, opts) {
-      const { parsed, malformedAuthorityOrPort, malformedPercentEncoding, malformedSchemeSpecific, malformedHost, malformedScheme } = parseWithStatus(uri3, opts);
+    function normalizeStringWithStatus(uri2, opts) {
+      const { parsed, malformedAuthorityOrPort, malformedPercentEncoding, malformedSchemeSpecific, malformedHost, malformedScheme } = parseWithStatus(uri2, opts);
       return {
-        normalized: malformedAuthorityOrPort || malformedPercentEncoding || malformedSchemeSpecific || malformedHost || malformedScheme ? uri3 : serialize(parsed, opts),
+        normalized: malformedAuthorityOrPort || malformedPercentEncoding || malformedSchemeSpecific || malformedHost || malformedScheme ? uri2 : serialize(parsed, opts),
         malformedAuthorityOrPort,
         malformedPercentEncoding,
         malformedSchemeSpecific,
@@ -24679,13 +24679,13 @@ var require_fast_uri = __commonJS({
         malformedScheme
       };
     }
-    function normalizeComparableURI(uri3, opts) {
-      if (typeof uri3 !== "string" && typeof uri3 !== "object") {
+    function normalizeComparableURI(uri2, opts) {
+      if (typeof uri2 !== "string" && typeof uri2 !== "object") {
         return void 0;
       }
       let value;
       try {
-        value = typeof uri3 === "string" ? uri3 : serialize(uri3, opts);
+        value = typeof uri2 === "string" ? uri2 : serialize(uri2, opts);
       } catch {
         return void 0;
       }
@@ -24712,9 +24712,9 @@ var require_uri = __commonJS({
   "node_modules/ajv/dist/runtime/uri.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    var uri3 = require_fast_uri();
-    uri3.code = 'require("ajv/dist/runtime/uri").default';
-    exports.default = uri3;
+    var uri2 = require_fast_uri();
+    uri2.code = 'require("ajv/dist/runtime/uri").default';
+    exports.default = uri2;
   }
 });
 
@@ -25101,10 +25101,10 @@ var require_core = __commonJS({
         return this;
       }
       // Add format
-      addFormat(name, format2) {
-        if (typeof format2 == "string")
-          format2 = new RegExp(format2);
-        this.formats[name] = format2;
+      addFormat(name, format) {
+        if (typeof format == "string")
+          format = new RegExp(format);
+        this.formats[name] = format;
         return this;
       }
       errorsText(errors = this.errors, { separator = ", ", dataVar = "data" } = {}) {
@@ -25132,10 +25132,10 @@ var require_core = __commonJS({
         }
         return metaSchema;
       }
-      _removeAllSchemas(schemas, regex2) {
+      _removeAllSchemas(schemas, regex) {
         for (const keyRef in schemas) {
           const sch = schemas[keyRef];
-          if (!regex2 || regex2.test(keyRef)) {
+          if (!regex || regex.test(keyRef)) {
             if (typeof sch == "string") {
               delete schemas[keyRef];
             } else if (sch && !sch.meta) {
@@ -25222,9 +25222,9 @@ var require_core = __commonJS({
     }
     function addInitialFormats() {
       for (const name in this.opts.formats) {
-        const format2 = this.opts.formats[name];
-        if (format2)
-          this.addFormat(name, format2);
+        const format = this.opts.formats[name];
+        if (format)
+          this.addFormat(name, format);
       }
     }
     function addInitialKeywords(defs) {
@@ -25361,11 +25361,11 @@ var require_ref = __commonJS({
       schemaType: "string",
       code(cxt) {
         const { gen, schema: $ref, it } = cxt;
-        const { baseId, schemaEnv: env, validateName, opts, self: self2 } = it;
+        const { baseId, schemaEnv: env, validateName, opts, self } = it;
         const { root } = env;
         if (($ref === "#" || $ref === "#/") && baseId === root.baseId)
           return callRootRef();
-        const schOrEnv = compile_1.resolveRef.call(self2, root, baseId, $ref);
+        const schOrEnv = compile_1.resolveRef.call(self, root, baseId, $ref);
         if (schOrEnv === void 0)
           throw new ref_error_1.default(it.opts.uriResolver, baseId, $ref);
         if (schOrEnv instanceof compile_1.SchemaEnv)
@@ -25552,7 +25552,7 @@ var require_ucs2length = __commonJS({
   "node_modules/ajv/dist/runtime/ucs2length.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    function ucs2length2(str) {
+    function ucs2length(str) {
       const len = str.length;
       let length = 0;
       let pos = 0;
@@ -25568,8 +25568,8 @@ var require_ucs2length = __commonJS({
       }
       return length;
     }
-    exports.default = ucs2length2;
-    ucs2length2.code = 'require("ajv/dist/runtime/ucs2length").default';
+    exports.default = ucs2length;
+    ucs2length.code = 'require("ajv/dist/runtime/ucs2length").default';
   }
 });
 
@@ -26893,7 +26893,7 @@ var require_format = __commonJS({
       error: error62,
       code(cxt, ruleType) {
         const { gen, data, $data, schema, schemaCode, it } = cxt;
-        const { opts, errSchemaPath, schemaEnv, self: self2 } = it;
+        const { opts, errSchemaPath, schemaEnv, self } = it;
         if (!opts.validateFormats)
           return;
         if ($data)
@@ -26902,39 +26902,39 @@ var require_format = __commonJS({
           validateFormat();
         function validate$DataFormat() {
           const fmts = gen.scopeValue("formats", {
-            ref: self2.formats,
+            ref: self.formats,
             code: opts.code.formats
           });
           const fDef = gen.const("fDef", (0, codegen_1._)`${fmts}[${schemaCode}]`);
           const fType = gen.let("fType");
-          const format2 = gen.let("format");
-          gen.if((0, codegen_1._)`typeof ${fDef} == "object" && !(${fDef} instanceof RegExp)`, () => gen.assign(fType, (0, codegen_1._)`${fDef}.type || "string"`).assign(format2, (0, codegen_1._)`${fDef}.validate`), () => gen.assign(fType, (0, codegen_1._)`"string"`).assign(format2, fDef));
+          const format = gen.let("format");
+          gen.if((0, codegen_1._)`typeof ${fDef} == "object" && !(${fDef} instanceof RegExp)`, () => gen.assign(fType, (0, codegen_1._)`${fDef}.type || "string"`).assign(format, (0, codegen_1._)`${fDef}.validate`), () => gen.assign(fType, (0, codegen_1._)`"string"`).assign(format, fDef));
           cxt.fail$data((0, codegen_1.or)(unknownFmt(), invalidFmt()));
           function unknownFmt() {
             if (opts.strictSchema === false)
               return codegen_1.nil;
-            return (0, codegen_1._)`${schemaCode} && !${format2}`;
+            return (0, codegen_1._)`${schemaCode} && !${format}`;
           }
           function invalidFmt() {
-            const callFormat = schemaEnv.$async ? (0, codegen_1._)`(${fDef}.async ? await ${format2}(${data}) : ${format2}(${data}))` : (0, codegen_1._)`${format2}(${data})`;
-            const validData = (0, codegen_1._)`(typeof ${format2} == "function" ? ${callFormat} : ${format2}.test(${data}))`;
-            return (0, codegen_1._)`${format2} && ${format2} !== true && ${fType} === ${ruleType} && !${validData}`;
+            const callFormat = schemaEnv.$async ? (0, codegen_1._)`(${fDef}.async ? await ${format}(${data}) : ${format}(${data}))` : (0, codegen_1._)`${format}(${data})`;
+            const validData = (0, codegen_1._)`(typeof ${format} == "function" ? ${callFormat} : ${format}.test(${data}))`;
+            return (0, codegen_1._)`${format} && ${format} !== true && ${fType} === ${ruleType} && !${validData}`;
           }
         }
         function validateFormat() {
-          const formatDef = self2.formats[schema];
+          const formatDef = self.formats[schema];
           if (!formatDef) {
             unknownFormat();
             return;
           }
           if (formatDef === true)
             return;
-          const [fmtType, format2, fmtRef] = getFormat(formatDef);
+          const [fmtType, format, fmtRef] = getFormat(formatDef);
           if (fmtType === ruleType)
             cxt.pass(validCondition());
           function unknownFormat() {
             if (opts.strictSchema === false) {
-              self2.logger.warn(unknownMsg());
+              self.logger.warn(unknownMsg());
               return;
             }
             throw new Error(unknownMsg());
@@ -26956,7 +26956,7 @@ var require_format = __commonJS({
                 throw new Error("async format in sync schema");
               return (0, codegen_1._)`await ${fmtRef}(${data})`;
             }
-            return typeof format2 == "function" ? (0, codegen_1._)`${fmtRef}(${data})` : (0, codegen_1._)`${fmtRef}.test(${data})`;
+            return typeof format == "function" ? (0, codegen_1._)`${fmtRef}(${data})` : (0, codegen_1._)`${fmtRef}.test(${data})`;
           }
         }
       }
@@ -26971,8 +26971,8 @@ var require_format2 = __commonJS({
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var format_1 = require_format();
-    var format2 = [format_1.default];
-    exports.default = format2;
+    var format = [format_1.default];
+    exports.default = format;
   }
 });
 
@@ -27373,12 +27373,12 @@ var require_formats = __commonJS({
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.formatNames = exports.fastFormats = exports.fullFormats = void 0;
-    function fmtDef(validate3, compare) {
-      return { validate: validate3, compare };
+    function fmtDef(validate2, compare) {
+      return { validate: validate2, compare };
     }
     exports.fullFormats = {
       // date: http://tools.ietf.org/html/rfc3339#section-5.6
-      date: fmtDef(date6, compareDate),
+      date: fmtDef(date5, compareDate),
       // date-time: http://tools.ietf.org/html/rfc3339#section-5.6
       time: fmtDef(getTime(true), compareTime),
       "date-time": fmtDef(getDateTime(true), compareDateTime),
@@ -27386,7 +27386,7 @@ var require_formats = __commonJS({
       "iso-date-time": fmtDef(getDateTime(), compareIsoDateTime),
       // duration: https://tools.ietf.org/html/rfc3339#appendix-A
       duration: /^P(?!$)((\d+Y)?(\d+M)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+S)?)?|(\d+W)?)$/,
-      uri: uri3,
+      uri: uri2,
       "uri-reference": /^(?:[a-z][a-z0-9+\-.]*:)?(?:\/?\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:]|%[0-9a-f]{2})*@)?(?:\[(?:(?:(?:(?:[0-9a-f]{1,4}:){6}|::(?:[0-9a-f]{1,4}:){5}|(?:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){4}|(?:(?:[0-9a-f]{1,4}:){0,1}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){3}|(?:(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){2}|(?:(?:[0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:|(?:(?:[0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::)(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?))|(?:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4}|(?:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::)|[Vv][0-9a-f]+\.[a-z0-9\-._~!$&'()*+,;=:]+)\]|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)|(?:[a-z0-9\-._~!$&'"()*+,;=]|%[0-9a-f]{2})*)(?::\d*)?(?:\/(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})*)*|\/(?:(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})*)*)?|(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})*)*)?(?:\?(?:[a-z0-9\-._~!$&'"()*+,;=:@/?]|%[0-9a-f]{2})*)?(?:#(?:[a-z0-9\-._~!$&'"()*+,;=:@/?]|%[0-9a-f]{2})*)?$/i,
       // uri-template: https://tools.ietf.org/html/rfc6570
       "uri-template": /^(?:(?:[^\x00-\x20"'<>%\\^`{|}]|%[0-9a-f]{2})|\{[+#./;?&=,!@|]?(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?(?:,(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?)*\})*$/i,
@@ -27398,7 +27398,7 @@ var require_formats = __commonJS({
       // optimized https://www.safaribooksonline.com/library/view/regular-expressions-cookbook/9780596802837/ch07s16.html
       ipv4: /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/,
       ipv6: /^((([0-9a-f]{1,4}:){7}([0-9a-f]{1,4}|:))|(([0-9a-f]{1,4}:){6}(:[0-9a-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9a-f]{1,4}:){5}(((:[0-9a-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9a-f]{1,4}:){4}(((:[0-9a-f]{1,4}){1,3})|((:[0-9a-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9a-f]{1,4}:){3}(((:[0-9a-f]{1,4}){1,4})|((:[0-9a-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9a-f]{1,4}:){2}(((:[0-9a-f]{1,4}){1,5})|((:[0-9a-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9a-f]{1,4}:){1}(((:[0-9a-f]{1,4}){1,6})|((:[0-9a-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9a-f]{1,4}){1,7})|((:[0-9a-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))$/i,
-      regex: regex2,
+      regex,
       // uuid: http://tools.ietf.org/html/rfc4122
       uuid: /^(?:urn:uuid:)?[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i,
       // JSON-pointer: https://tools.ietf.org/html/rfc6901
@@ -27439,19 +27439,19 @@ var require_formats = __commonJS({
       email: /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i
     };
     exports.formatNames = Object.keys(exports.fullFormats);
-    function isLeapYear2(year) {
+    function isLeapYear(year) {
       return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
     }
-    var DATE2 = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
-    var DAYS2 = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    function date6(str) {
-      const matches = DATE2.exec(str);
+    var DATE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
+    var DAYS = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    function date5(str) {
+      const matches = DATE.exec(str);
       if (!matches)
         return false;
       const year = +matches[1];
       const month = +matches[2];
       const day = +matches[3];
-      return month >= 1 && month <= 12 && day >= 1 && day <= (month === 2 && isLeapYear2(year) ? 29 : DAYS2[month]);
+      return month >= 1 && month <= 12 && day >= 1 && day <= (month === 2 && isLeapYear(year) ? 29 : DAYS[month]);
     }
     function compareDate(d1, d2) {
       if (!(d1 && d2))
@@ -27462,10 +27462,10 @@ var require_formats = __commonJS({
         return -1;
       return 0;
     }
-    var TIME2 = /^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(z|([+-])(\d\d)(?::?(\d\d))?)?$/i;
+    var TIME = /^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(z|([+-])(\d\d)(?::?(\d\d))?)?$/i;
     function getTime(strictTimeZone) {
-      return function time4(str) {
-        const matches = TIME2.exec(str);
+      return function time3(str) {
+        const matches = TIME.exec(str);
         if (!matches)
           return false;
         const hr = +matches[1];
@@ -27496,8 +27496,8 @@ var require_formats = __commonJS({
     function compareIsoTime(t1, t2) {
       if (!(t1 && t2))
         return void 0;
-      const a1 = TIME2.exec(t1);
-      const a2 = TIME2.exec(t2);
+      const a1 = TIME.exec(t1);
+      const a2 = TIME.exec(t2);
       if (!(a1 && a2))
         return void 0;
       t1 = a1[1] + a1[2] + a1[3];
@@ -27508,12 +27508,12 @@ var require_formats = __commonJS({
         return -1;
       return 0;
     }
-    var DATE_TIME_SEPARATOR2 = /t|\s/i;
+    var DATE_TIME_SEPARATOR = /t|\s/i;
     function getDateTime(strictTimeZone) {
-      const time4 = getTime(strictTimeZone);
-      return function date_time2(str) {
-        const dateTime = str.split(DATE_TIME_SEPARATOR2);
-        return dateTime.length === 2 && date6(dateTime[0]) && time4(dateTime[1]);
+      const time3 = getTime(strictTimeZone);
+      return function date_time(str) {
+        const dateTime = str.split(DATE_TIME_SEPARATOR);
+        return dateTime.length === 2 && date5(dateTime[0]) && time3(dateTime[1]);
       };
     }
     function compareDateTime(dt1, dt2) {
@@ -27528,17 +27528,17 @@ var require_formats = __commonJS({
     function compareIsoDateTime(dt1, dt2) {
       if (!(dt1 && dt2))
         return void 0;
-      const [d1, t1] = dt1.split(DATE_TIME_SEPARATOR2);
-      const [d2, t2] = dt2.split(DATE_TIME_SEPARATOR2);
+      const [d1, t1] = dt1.split(DATE_TIME_SEPARATOR);
+      const [d2, t2] = dt2.split(DATE_TIME_SEPARATOR);
       const res = compareDate(d1, d2);
       if (res === void 0)
         return void 0;
       return res || compareTime(t1, t2);
     }
-    var NOT_URI_FRAGMENT2 = /\/|:/;
+    var NOT_URI_FRAGMENT = /\/|:/;
     var URI = /^(?:[a-z][a-z0-9+\-.]*:)(?:\/?\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:]|%[0-9a-f]{2})*@)?(?:\[(?:(?:(?:(?:[0-9a-f]{1,4}:){6}|::(?:[0-9a-f]{1,4}:){5}|(?:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){4}|(?:(?:[0-9a-f]{1,4}:){0,1}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){3}|(?:(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){2}|(?:(?:[0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:|(?:(?:[0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::)(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?))|(?:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4}|(?:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::)|[Vv][0-9a-f]+\.[a-z0-9\-._~!$&'()*+,;=:]+)\]|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)|(?:[a-z0-9\-._~!$&'()*+,;=]|%[0-9a-f]{2})*)(?::\d*)?(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*|\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)?|(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)(?:\?(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?(?:#(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?$/i;
-    function uri3(str) {
-      return NOT_URI_FRAGMENT2.test(str) && URI.test(str);
+    function uri2(str) {
+      return NOT_URI_FRAGMENT.test(str) && URI.test(str);
     }
     var BYTE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/gm;
     function byte(str) {
@@ -27556,9 +27556,9 @@ var require_formats = __commonJS({
     function validateNumber() {
       return true;
     }
-    var Z_ANCHOR2 = /[^\\]\\Z/;
-    function regex2(str) {
-      if (Z_ANCHOR2.test(str))
+    var Z_ANCHOR = /[^\\]\\Z/;
+    function regex(str) {
+      if (Z_ANCHOR.test(str))
         return false;
       try {
         new RegExp(str);
@@ -27597,34 +27597,34 @@ var require_limit = __commonJS({
       error: error62,
       code(cxt) {
         const { gen, data, schemaCode, keyword, it } = cxt;
-        const { opts, self: self2 } = it;
+        const { opts, self } = it;
         if (!opts.validateFormats)
           return;
-        const fCxt = new ajv_1.KeywordCxt(it, self2.RULES.all.format.definition, "format");
+        const fCxt = new ajv_1.KeywordCxt(it, self.RULES.all.format.definition, "format");
         if (fCxt.$data)
           validate$DataFormat();
         else
           validateFormat();
         function validate$DataFormat() {
           const fmts = gen.scopeValue("formats", {
-            ref: self2.formats,
+            ref: self.formats,
             code: opts.code.formats
           });
           const fmt = gen.const("fmt", (0, codegen_1._)`${fmts}[${fCxt.schemaCode}]`);
           cxt.fail$data((0, codegen_1.or)((0, codegen_1._)`typeof ${fmt} != "object"`, (0, codegen_1._)`${fmt} instanceof RegExp`, (0, codegen_1._)`typeof ${fmt}.compare != "function"`, compareCode(fmt)));
         }
         function validateFormat() {
-          const format2 = fCxt.schema;
-          const fmtDef = self2.formats[format2];
+          const format = fCxt.schema;
+          const fmtDef = self.formats[format];
           if (!fmtDef || fmtDef === true)
             return;
           if (typeof fmtDef != "object" || fmtDef instanceof RegExp || typeof fmtDef.compare != "function") {
-            throw new Error(`"${keyword}": format "${format2}" does not define "compare" function`);
+            throw new Error(`"${keyword}": format "${format}" does not define "compare" function`);
           }
           const fmt = gen.scopeValue("formats", {
-            key: format2,
+            key: format,
             ref: fmtDef,
-            code: opts.code.formats ? (0, codegen_1._)`${opts.code.formats}${(0, codegen_1.getProperty)(format2)}` : void 0
+            code: opts.code.formats ? (0, codegen_1._)`${opts.code.formats}${(0, codegen_1.getProperty)(format)}` : void 0
           });
           cxt.fail$data(compareCode(fmt));
         }
@@ -27768,7 +27768,8 @@ async function updateImportedIssue(store2, taskId, issue2, revision) {
 }
 
 // src/server/connection.mjs
-import { fileURLToPath } from "node:url";
+import childProcess from "node:child_process";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 // scripts/connection.mjs
 import { readFile, writeFile, mkdir, rename } from "node:fs/promises";
@@ -27934,8 +27935,8 @@ async function loadStore(directory) {
 }
 
 // src/server/connection.mjs
-async function connectFromFile(directory, uri3) {
-  const selected = new URL(uri3);
+async function connectFromFile(directory, uri2) {
+  const selected = new URL(uri2);
   if (selected.protocol !== "file:") throw new Error("Choose a connection file saved on this Mac.");
   const path = fileURLToPath(selected);
   const input2 = await readConnectionFile(path);
@@ -27945,16 +27946,28 @@ async function connectFromFile(directory, uri3) {
   await saveConnection(connection, directory);
   return { store: store2, data };
 }
-function connectionFileForm() {
-  return {
-    mode: "form",
-    message: "Choose the private TaskBoard connection file exported from your connected Mac.",
-    requestedSchema: {
-      type: "object",
-      properties: { connectionFile: { type: "string", title: "Connection file", format: "uri", "x-openai-input": { type: "file", options: [], userOptions: { kind: "file", accept: [".json"] } } } },
-      required: ["connectionFile"]
-    }
-  };
+async function chooseConnectionFile(signal) {
+  const script = `try
+ activate
+ set connectionFile to choose file with prompt "Choose TaskBoard-connection.json to connect your shared board." of type {"json"} default location (path to downloads folder)
+ return POSIX path of connectionFile
+on error number -128
+ return ""
+end try`;
+  const path = await new Promise((resolve, reject) => {
+    childProcess.execFile("/usr/bin/osascript", ["-e", script], { encoding: "utf8", signal }, (error62, stdout) => {
+      if (error62) {
+        const failure2 = new Error("Could not open the macOS file picker. Try again.");
+        reject(failure2);
+        return;
+      }
+      const selected = stdout.trimEnd();
+      resolve(selected);
+    });
+  });
+  if (path === "") return null;
+  const uri2 = pathToFileURL(path);
+  return uri2.href;
 }
 
 // scripts/creation.mjs
@@ -28943,13 +28956,13 @@ function timeRegex(args) {
   return new RegExp(`^${timeRegexSource(args)}$`);
 }
 function datetimeRegex(args) {
-  let regex2 = `${dateRegexSource}T${timeRegexSource(args)}`;
+  let regex = `${dateRegexSource}T${timeRegexSource(args)}`;
   const opts = [];
   opts.push(args.local ? `Z?` : `Z`);
   if (args.offset)
     opts.push(`([+-]\\d{2}:?\\d{2})`);
-  regex2 = `${regex2}(${opts.join("|")})`;
-  return new RegExp(`^${regex2}$`);
+  regex = `${regex}(${opts.join("|")})`;
+  return new RegExp(`^${regex}$`);
 }
 function isValidIP(ip, version2) {
   if ((version2 === "v4" || !version2) && ipv4Regex.test(ip)) {
@@ -29195,8 +29208,8 @@ var ZodString2 = class _ZodString2 extends ZodType2 {
           status.dirty();
         }
       } else if (check2.kind === "datetime") {
-        const regex2 = datetimeRegex(check2);
-        if (!regex2.test(input2.data)) {
+        const regex = datetimeRegex(check2);
+        if (!regex.test(input2.data)) {
           ctx = this._getOrReturnCtx(input2, ctx);
           addIssueToContext(ctx, {
             code: ZodIssueCode2.invalid_string,
@@ -29206,8 +29219,8 @@ var ZodString2 = class _ZodString2 extends ZodType2 {
           status.dirty();
         }
       } else if (check2.kind === "date") {
-        const regex2 = dateRegex;
-        if (!regex2.test(input2.data)) {
+        const regex = dateRegex;
+        if (!regex.test(input2.data)) {
           ctx = this._getOrReturnCtx(input2, ctx);
           addIssueToContext(ctx, {
             code: ZodIssueCode2.invalid_string,
@@ -29217,8 +29230,8 @@ var ZodString2 = class _ZodString2 extends ZodType2 {
           status.dirty();
         }
       } else if (check2.kind === "time") {
-        const regex2 = timeRegex(check2);
-        if (!regex2.test(input2.data)) {
+        const regex = timeRegex(check2);
+        if (!regex.test(input2.data)) {
           ctx = this._getOrReturnCtx(input2, ctx);
           addIssueToContext(ctx, {
             code: ZodIssueCode2.invalid_string,
@@ -29293,8 +29306,8 @@ var ZodString2 = class _ZodString2 extends ZodType2 {
     }
     return { status: status.value, value: input2.data };
   }
-  _regex(regex2, validation, message) {
-    return this.refinement((data) => regex2.test(data), {
+  _regex(regex, validation, message) {
+    return this.refinement((data) => regex.test(data), {
       validation,
       code: ZodIssueCode2.invalid_string,
       ...errorUtil.errToObj(message)
@@ -29386,10 +29399,10 @@ var ZodString2 = class _ZodString2 extends ZodType2 {
   duration(message) {
     return this._addCheck({ kind: "duration", ...errorUtil.errToObj(message) });
   }
-  regex(regex2, message) {
+  regex(regex, message) {
     return this._addCheck({
       kind: "regex",
-      regex: regex2,
+      regex,
       ...errorUtil.errToObj(message)
     });
   }
@@ -32035,7 +32048,7 @@ var ZodMiniType = /* @__PURE__ */ $constructor("ZodMiniType", (inst, def) => {
 var ZodMiniObject = /* @__PURE__ */ $constructor("ZodMiniObject", (inst, def) => {
   $ZodObject.init(inst, def);
   ZodMiniType.init(inst, def);
-  installLazyProp(inst, "shape", (self2) => self2._zod.def.shape, false);
+  installLazyProp(inst, "shape", (self) => self._zod.def.shape, false);
 });
 // @__NO_SIDE_EFFECTS__
 function object2(shape, params) {
@@ -34295,7 +34308,7 @@ function addFormat(schema, value, message, refs) {
     setResponseValueAndErrors(schema, "format", value, message, refs);
   }
 }
-function addPattern2(schema, regex2, message, refs) {
+function addPattern2(schema, regex, message, refs) {
   if (schema.pattern || schema.allOf?.some((x) => x.pattern)) {
     if (!schema.allOf) {
       schema.allOf = [];
@@ -34316,24 +34329,24 @@ function addPattern2(schema, regex2, message, refs) {
       }
     }
     schema.allOf.push({
-      pattern: stringifyRegExpWithFlags(regex2, refs),
+      pattern: stringifyRegExpWithFlags(regex, refs),
       ...message && refs.errorMessages && { errorMessage: { pattern: message } }
     });
   } else {
-    setResponseValueAndErrors(schema, "pattern", stringifyRegExpWithFlags(regex2, refs), message, refs);
+    setResponseValueAndErrors(schema, "pattern", stringifyRegExpWithFlags(regex, refs), message, refs);
   }
 }
-function stringifyRegExpWithFlags(regex2, refs) {
-  if (!refs.applyRegexFlags || !regex2.flags) {
-    return regex2.source;
+function stringifyRegExpWithFlags(regex, refs) {
+  if (!refs.applyRegexFlags || !regex.flags) {
+    return regex.source;
   }
   const flags = {
-    i: regex2.flags.includes("i"),
-    m: regex2.flags.includes("m"),
-    s: regex2.flags.includes("s")
+    i: regex.flags.includes("i"),
+    m: regex.flags.includes("m"),
+    s: regex.flags.includes("s")
     // `.` matches newlines
   };
-  const source = flags.i ? regex2.source.toLowerCase() : regex2.source;
+  const source = flags.i ? regex.source.toLowerCase() : regex.source;
   let pattern = "";
   let isEscaped = false;
   let inCharGroup = false;
@@ -34394,7 +34407,7 @@ function stringifyRegExpWithFlags(regex2, refs) {
     new RegExp(pattern);
   } catch {
     console.warn(`Could not convert regex pattern at ${refs.currentPath.join("/")} to a flag-independent form! Falling back to the flag-ignorant source`);
-    return regex2.source;
+    return regex.source;
   }
   return pattern;
 }
@@ -37180,8 +37193,8 @@ var McpServer = class {
       }
     });
     this.server.setRequestHandler(ListResourcesRequestSchema, async (request, extra) => {
-      const resources = Object.entries(this._registeredResources).filter(([_2, resource]) => resource.enabled).map(([uri3, resource]) => ({
-        uri: uri3,
+      const resources = Object.entries(this._registeredResources).filter(([_2, resource]) => resource.enabled).map(([uri2, resource]) => ({
+        uri: uri2,
         name: resource.name,
         ...resource.metadata
       }));
@@ -37210,21 +37223,21 @@ var McpServer = class {
       return { resourceTemplates };
     });
     this.server.setRequestHandler(ReadResourceRequestSchema, async (request, extra) => {
-      const uri3 = new URL(request.params.uri);
-      const resource = this._registeredResources[uri3.toString()];
+      const uri2 = new URL(request.params.uri);
+      const resource = this._registeredResources[uri2.toString()];
       if (resource) {
         if (!resource.enabled) {
-          throw new McpError(ErrorCode.InvalidParams, `Resource ${uri3} disabled`);
+          throw new McpError(ErrorCode.InvalidParams, `Resource ${uri2} disabled`);
         }
-        return resource.readCallback(uri3, extra);
+        return resource.readCallback(uri2, extra);
       }
       for (const template of Object.values(this._registeredResourceTemplates)) {
-        const variables = template.resourceTemplate.uriTemplate.match(uri3.toString());
+        const variables = template.resourceTemplate.uriTemplate.match(uri2.toString());
         if (variables) {
-          return template.readCallback(uri3, variables, extra);
+          return template.readCallback(uri2, variables, extra);
         }
       }
-      throw new McpError(ErrorCode.InvalidParams, `Resource ${uri3} not found`);
+      throw new McpError(ErrorCode.InvalidParams, `Resource ${uri2} not found`);
     });
     this._resourceHandlersInitialized = true;
   }
@@ -37318,7 +37331,7 @@ var McpServer = class {
       return registeredResourceTemplate;
     }
   }
-  _createRegisteredResource(name, title, uri3, metadata, readCallback) {
+  _createRegisteredResource(name, title, uri2, metadata, readCallback) {
     const registeredResource = {
       name,
       title,
@@ -37329,8 +37342,8 @@ var McpServer = class {
       enable: () => registeredResource.update({ enabled: true }),
       remove: () => registeredResource.update({ uri: null }),
       update: (updates) => {
-        if (typeof updates.uri !== "undefined" && updates.uri !== uri3) {
-          delete this._registeredResources[uri3];
+        if (typeof updates.uri !== "undefined" && updates.uri !== uri2) {
+          delete this._registeredResources[uri2];
           if (updates.uri)
             this._registeredResources[updates.uri] = registeredResource;
         }
@@ -37347,7 +37360,7 @@ var McpServer = class {
         this.sendResourceListChanged();
       }
     };
-    this._registeredResources[uri3] = registeredResource;
+    this._registeredResources[uri2] = registeredResource;
     return registeredResource;
   }
   _createRegisteredResourceTemplate(name, title, template, metadata, readCallback) {
@@ -37868,1524 +37881,6 @@ function N3(Z, $, J, X, V) {
   return Z.registerResource($, J, { mimeType: p, ...X }, V);
 }
 
-// node_modules/@cfworker/json-schema/dist/esm/deep-compare-strict.js
-function deepCompareStrict(a, b) {
-  const typeofa = typeof a;
-  if (typeofa !== typeof b) {
-    return false;
-  }
-  const aIsArray = Array.isArray(a);
-  const bIsArray = Array.isArray(b);
-  if (aIsArray !== bIsArray) {
-    return false;
-  }
-  if (aIsArray) {
-    const length = a.length;
-    if (length !== b.length) {
-      return false;
-    }
-    for (let i = 0; i < length; i++) {
-      if (!deepCompareStrict(a[i], b[i])) {
-        return false;
-      }
-    }
-    return true;
-  }
-  if (typeofa === "object") {
-    if (!a || !b) {
-      return a === b;
-    }
-    const aKeys = Object.keys(a);
-    const bKeys = Object.keys(b);
-    const length = aKeys.length;
-    if (length !== bKeys.length) {
-      return false;
-    }
-    for (const k2 of aKeys) {
-      if (!Object.prototype.hasOwnProperty.call(b, k2)) {
-        return false;
-      }
-      if (!deepCompareStrict(a[k2], b[k2])) {
-        return false;
-      }
-    }
-    return true;
-  }
-  return a === b;
-}
-
-// node_modules/@cfworker/json-schema/dist/esm/pointer.js
-function encodePointer(p2) {
-  return encodeURI(escapePointer(p2));
-}
-function escapePointer(p2) {
-  return p2.replace(/~/g, "~0").replace(/\//g, "~1");
-}
-
-// node_modules/@cfworker/json-schema/dist/esm/dereference.js
-var schemaArrayKeyword = {
-  prefixItems: true,
-  items: true,
-  allOf: true,
-  anyOf: true,
-  oneOf: true
-};
-var schemaMapKeyword = {
-  $defs: true,
-  definitions: true,
-  properties: true,
-  patternProperties: true,
-  dependentSchemas: true
-};
-var ignoredKeyword = {
-  id: true,
-  $id: true,
-  $ref: true,
-  $schema: true,
-  $anchor: true,
-  $vocabulary: true,
-  $comment: true,
-  default: true,
-  enum: true,
-  const: true,
-  required: true,
-  dependentRequired: true,
-  type: true,
-  maximum: true,
-  minimum: true,
-  exclusiveMaximum: true,
-  exclusiveMinimum: true,
-  multipleOf: true,
-  maxLength: true,
-  minLength: true,
-  pattern: true,
-  format: true,
-  maxItems: true,
-  minItems: true,
-  uniqueItems: true,
-  maxProperties: true,
-  minProperties: true
-};
-var initialBaseURI = typeof self !== "undefined" && self.location && self.location.origin !== "null" ? new URL(self.location.origin + self.location.pathname + location.search) : new URL("https://github.com/cfworker");
-function dereference(schema, lookup = /* @__PURE__ */ Object.create(null), baseURI = initialBaseURI, basePointer = "") {
-  if (schema && typeof schema === "object" && !Array.isArray(schema)) {
-    const id = schema.$id || schema["id"];
-    if (id) {
-      const url2 = new URL(id, baseURI.href);
-      if (url2.hash.length > 1) {
-        lookup[url2.href] = schema;
-      } else {
-        url2.hash = "";
-        if (basePointer === "") {
-          baseURI = url2;
-        } else {
-          dereference(schema, lookup, baseURI);
-        }
-      }
-    }
-  } else if (schema !== true && schema !== false) {
-    return lookup;
-  }
-  const schemaURI = baseURI.href + (basePointer ? "#" + basePointer : "");
-  if (lookup[schemaURI] !== void 0 && lookup[schemaURI] !== schema) {
-    throw new Error(`Duplicate schema URI "${schemaURI}".`);
-  }
-  lookup[schemaURI] = schema;
-  if (schema === true || schema === false) {
-    return lookup;
-  }
-  if (schema.__absolute_uri__ === void 0) {
-    Object.defineProperty(schema, "__absolute_uri__", {
-      enumerable: false,
-      value: schemaURI
-    });
-  }
-  if (schema.$ref && schema.__absolute_ref__ === void 0) {
-    const url2 = new URL(schema.$ref, baseURI.href);
-    url2.hash = url2.hash;
-    Object.defineProperty(schema, "__absolute_ref__", {
-      enumerable: false,
-      value: url2.href
-    });
-  }
-  if (schema.$recursiveRef && schema.__absolute_recursive_ref__ === void 0) {
-    const url2 = new URL(schema.$recursiveRef, baseURI.href);
-    url2.hash = url2.hash;
-    Object.defineProperty(schema, "__absolute_recursive_ref__", {
-      enumerable: false,
-      value: url2.href
-    });
-  }
-  if (schema.$anchor) {
-    const url2 = new URL("#" + schema.$anchor, baseURI.href);
-    lookup[url2.href] = schema;
-  }
-  for (let key in schema) {
-    if (ignoredKeyword[key]) {
-      continue;
-    }
-    const keyBase = `${basePointer}/${encodePointer(key)}`;
-    const subSchema = schema[key];
-    if (Array.isArray(subSchema)) {
-      if (schemaArrayKeyword[key]) {
-        const length = subSchema.length;
-        for (let i = 0; i < length; i++) {
-          dereference(subSchema[i], lookup, baseURI, `${keyBase}/${i}`);
-        }
-      }
-    } else if (schemaMapKeyword[key]) {
-      for (let subKey in subSchema) {
-        dereference(subSchema[subKey], lookup, baseURI, `${keyBase}/${encodePointer(subKey)}`);
-      }
-    } else {
-      dereference(subSchema, lookup, baseURI, keyBase);
-    }
-  }
-  return lookup;
-}
-
-// node_modules/@cfworker/json-schema/dist/esm/format.js
-var DATE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
-var DAYS = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-var TIME = /^(\d\d):(\d\d):(\d\d)(\.\d+)?(z|[+-]\d\d(?::?\d\d)?)?$/i;
-var HOSTNAME = /^(?=.{1,253}\.?$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[-0-9a-z]{0,61}[0-9a-z])?)*\.?$/i;
-var URIREF = /^(?:[a-z][a-z0-9+\-.]*:)?(?:\/?\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:]|%[0-9a-f]{2})*@)?(?:\[(?:(?:(?:(?:[0-9a-f]{1,4}:){6}|::(?:[0-9a-f]{1,4}:){5}|(?:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){4}|(?:(?:[0-9a-f]{1,4}:){0,1}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){3}|(?:(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){2}|(?:(?:[0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:|(?:(?:[0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::)(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?))|(?:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4}|(?:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::)|[Vv][0-9a-f]+\.[a-z0-9\-._~!$&'()*+,;=:]+)\]|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)|(?:[a-z0-9\-._~!$&'"()*+,;=]|%[0-9a-f]{2})*)(?::\d*)?(?:\/(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})*)*|\/(?:(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})*)*)?|(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'"()*+,;=:@]|%[0-9a-f]{2})*)*)?(?:\?(?:[a-z0-9\-._~!$&'"()*+,;=:@/?]|%[0-9a-f]{2})*)?(?:#(?:[a-z0-9\-._~!$&'"()*+,;=:@/?]|%[0-9a-f]{2})*)?$/i;
-var URITEMPLATE = /^(?:(?:[^\x00-\x20"'<>%\\^`{|}]|%[0-9a-f]{2})|\{[+#./;?&=,!@|]?(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?(?:,(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?)*\})*$/i;
-var URL_ = /^(?:(?:https?|ftp):\/\/)(?:\S+(?::\S*)?@)?(?:(?!10(?:\.\d{1,3}){3})(?!127(?:\.\d{1,3}){3})(?!169\.254(?:\.\d{1,3}){2})(?!192\.168(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u{00a1}-\u{ffff}0-9]+-?)*[a-z\u{00a1}-\u{ffff}0-9]+)(?:\.(?:[a-z\u{00a1}-\u{ffff}0-9]+-?)*[a-z\u{00a1}-\u{ffff}0-9]+)*(?:\.(?:[a-z\u{00a1}-\u{ffff}]{2,})))(?::\d{2,5})?(?:\/[^\s]*)?$/iu;
-var UUID = /^(?:urn:uuid:)?[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
-var JSON_POINTER = /^(?:\/(?:[^~/]|~0|~1)*)*$/;
-var JSON_POINTER_URI_FRAGMENT = /^#(?:\/(?:[a-z0-9_\-.!$&'()*+,;:=@]|%[0-9a-f]{2}|~0|~1)*)*$/i;
-var RELATIVE_JSON_POINTER = /^(?:0|[1-9][0-9]*)(?:#|(?:\/(?:[^~/]|~0|~1)*)*)$/;
-var EMAIL = (input2) => {
-  if (input2[0] === '"')
-    return false;
-  const [name, host, ...rest] = input2.split("@");
-  if (!name || !host || rest.length !== 0 || name.length > 64 || host.length > 253)
-    return false;
-  if (name[0] === "." || name.endsWith(".") || name.includes(".."))
-    return false;
-  if (!/^[a-z0-9.-]+$/i.test(host) || !/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+$/i.test(name))
-    return false;
-  return host.split(".").every((part) => /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i.test(part));
-};
-var IPV4 = /^(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)$/;
-var IPV6 = /^((([0-9a-f]{1,4}:){7}([0-9a-f]{1,4}|:))|(([0-9a-f]{1,4}:){6}(:[0-9a-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9a-f]{1,4}:){5}(((:[0-9a-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9a-f]{1,4}:){4}(((:[0-9a-f]{1,4}){1,3})|((:[0-9a-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9a-f]{1,4}:){3}(((:[0-9a-f]{1,4}){1,4})|((:[0-9a-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9a-f]{1,4}:){2}(((:[0-9a-f]{1,4}){1,5})|((:[0-9a-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9a-f]{1,4}:){1}(((:[0-9a-f]{1,4}){1,6})|((:[0-9a-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9a-f]{1,4}){1,7})|((:[0-9a-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))$/i;
-var DURATION = (input2) => input2.length > 1 && input2.length < 80 && (/^P\d+([.,]\d+)?W$/.test(input2) || /^P[\dYMDTHS]*(\d[.,]\d+)?[YMDHS]$/.test(input2) && /^P([.,\d]+Y)?([.,\d]+M)?([.,\d]+D)?(T([.,\d]+H)?([.,\d]+M)?([.,\d]+S)?)?$/.test(input2));
-function bind(r2) {
-  return r2.test.bind(r2);
-}
-var format = {
-  date: date5,
-  time: time3.bind(void 0, false),
-  "date-time": date_time,
-  duration: DURATION,
-  uri,
-  "uri-reference": bind(URIREF),
-  "uri-template": bind(URITEMPLATE),
-  url: bind(URL_),
-  email: EMAIL,
-  hostname: bind(HOSTNAME),
-  ipv4: bind(IPV4),
-  ipv6: bind(IPV6),
-  regex,
-  uuid: bind(UUID),
-  "json-pointer": bind(JSON_POINTER),
-  "json-pointer-uri-fragment": bind(JSON_POINTER_URI_FRAGMENT),
-  "relative-json-pointer": bind(RELATIVE_JSON_POINTER)
-};
-function isLeapYear(year) {
-  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-}
-function date5(str) {
-  const matches = str.match(DATE);
-  if (!matches)
-    return false;
-  const yearPart = matches[1];
-  const monthPart = matches[2];
-  const dayPart = matches[3];
-  if (!yearPart || !monthPart || !dayPart)
-    return false;
-  const year = +yearPart;
-  const month = +monthPart;
-  const day = +dayPart;
-  const maxDay = month == 2 && isLeapYear(year) ? 29 : DAYS[month];
-  return month >= 1 && month <= 12 && day >= 1 && maxDay !== void 0 && day <= maxDay;
-}
-function time3(full, str) {
-  const matches = str.match(TIME);
-  if (!matches)
-    return false;
-  const hourPart = matches[1];
-  const minutePart = matches[2];
-  const secondPart = matches[3];
-  if (!hourPart || !minutePart || !secondPart)
-    return false;
-  const hour = +hourPart;
-  const minute = +minutePart;
-  const second = +secondPart;
-  const timeZone = !!matches[5];
-  return (hour <= 23 && minute <= 59 && second <= 59 || hour == 23 && minute == 59 && second == 60) && (!full || timeZone);
-}
-var DATE_TIME_SEPARATOR = /t|\s/i;
-function date_time(str) {
-  const [datePart, timePart, extra] = str.split(DATE_TIME_SEPARATOR);
-  return datePart !== void 0 && timePart !== void 0 && extra === void 0 && date5(datePart) && time3(true, timePart);
-}
-var NOT_URI_FRAGMENT = /\/|:/;
-var URI_PATTERN = /^(?:[a-z][a-z0-9+\-.]*:)(?:\/?\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:]|%[0-9a-f]{2})*@)?(?:\[(?:(?:(?:(?:[0-9a-f]{1,4}:){6}|::(?:[0-9a-f]{1,4}:){5}|(?:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){4}|(?:(?:[0-9a-f]{1,4}:){0,1}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){3}|(?:(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){2}|(?:(?:[0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:|(?:(?:[0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::)(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?))|(?:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4}|(?:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::)|[Vv][0-9a-f]+\.[a-z0-9\-._~!$&'()*+,;=:]+)\]|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)|(?:[a-z0-9\-._~!$&'()*+,;=]|%[0-9a-f]{2})*)(?::\d*)?(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*|\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)?|(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)(?:\?(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?(?:#(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?$/i;
-function uri(str) {
-  return NOT_URI_FRAGMENT.test(str) && URI_PATTERN.test(str);
-}
-var Z_ANCHOR = /[^\\]\\Z/;
-function regex(str) {
-  if (Z_ANCHOR.test(str))
-    return false;
-  try {
-    new RegExp(str, "u");
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-// node_modules/@cfworker/json-schema/dist/esm/ucs2-length.js
-function ucs2length(s) {
-  let result2 = 0;
-  let length = s.length;
-  let index = 0;
-  let charCode;
-  while (index < length) {
-    result2++;
-    charCode = s.charCodeAt(index++);
-    if (charCode >= 55296 && charCode <= 56319 && index < length) {
-      charCode = s.charCodeAt(index);
-      if ((charCode & 64512) == 56320) {
-        index++;
-      }
-    }
-  }
-  return result2;
-}
-
-// node_modules/@cfworker/json-schema/dist/esm/validate.js
-function hasOwnProperty(instance, key) {
-  return Object.prototype.hasOwnProperty.call(instance, key);
-}
-function decimalInteger(value) {
-  const coefficientAndExponent = Math.abs(value).toString().split("e");
-  const coefficient = coefficientAndExponent[0];
-  const exponent = coefficientAndExponent[1] ?? "0";
-  const point = coefficient.indexOf(".");
-  const fractionLength = point === -1 ? 0 : coefficient.length - point - 1;
-  return [
-    BigInt(coefficient.replace(".", "")),
-    Number(exponent) - fractionLength
-  ];
-}
-function isMultipleOf(instance, divisor) {
-  if (!Number.isFinite(instance) || !Number.isFinite(divisor) || divisor <= 0) {
-    return false;
-  }
-  const [instanceCoefficient, instanceExponent] = decimalInteger(instance);
-  const [divisorCoefficient, divisorExponent] = decimalInteger(divisor);
-  const exponentDifference = instanceExponent - divisorExponent;
-  if (exponentDifference >= 0) {
-    return instanceCoefficient * 10n ** BigInt(exponentDifference) % divisorCoefficient === 0n;
-  }
-  return instanceCoefficient % (divisorCoefficient * 10n ** BigInt(-exponentDifference)) === 0n;
-}
-function validate2(instance, schema, draft = "2019-09", lookup = dereference(schema), shortCircuit = true, recursiveAnchor = null, instanceLocation = "#", schemaLocation = "#", evaluated = /* @__PURE__ */ Object.create(null)) {
-  if (schema === true) {
-    return { valid: true, errors: [] };
-  }
-  if (schema === false) {
-    return {
-      valid: false,
-      errors: [
-        {
-          instanceLocation,
-          keyword: "false",
-          keywordLocation: instanceLocation,
-          error: "False boolean schema."
-        }
-      ]
-    };
-  }
-  const rawInstanceType = typeof instance;
-  let instanceType;
-  switch (rawInstanceType) {
-    case "boolean":
-    case "number":
-    case "string":
-      instanceType = rawInstanceType;
-      break;
-    case "object":
-      if (instance === null) {
-        instanceType = "null";
-      } else if (Array.isArray(instance)) {
-        instanceType = "array";
-      } else {
-        instanceType = "object";
-      }
-      break;
-    default:
-      throw new Error(`Instances of "${rawInstanceType}" type are not supported.`);
-  }
-  const { $ref, $recursiveRef, $recursiveAnchor, type: $type, const: $const, enum: $enum, required: $required, not: $not, anyOf: $anyOf, allOf: $allOf, oneOf: $oneOf, if: $if, then: $then, else: $else, format: $format, properties: $properties, patternProperties: $patternProperties, additionalProperties: $additionalProperties, unevaluatedProperties: $unevaluatedProperties, minProperties: $minProperties, maxProperties: $maxProperties, propertyNames: $propertyNames, dependentRequired: $dependentRequired, dependentSchemas: $dependentSchemas, dependencies: $dependencies, prefixItems: $prefixItems, items: $items, additionalItems: $additionalItems, unevaluatedItems: $unevaluatedItems, contains: $contains, minContains: $minContains, maxContains: $maxContains, minItems: $minItems, maxItems: $maxItems, uniqueItems: $uniqueItems, minimum: $minimum, maximum: $maximum, exclusiveMinimum: $exclusiveMinimum, exclusiveMaximum: $exclusiveMaximum, multipleOf: $multipleOf, minLength: $minLength, maxLength: $maxLength, pattern: $pattern, __absolute_ref__, __absolute_recursive_ref__ } = schema;
-  const errors = [];
-  if ($recursiveAnchor === true && recursiveAnchor === null) {
-    recursiveAnchor = schema;
-  }
-  if ($recursiveRef === "#") {
-    const refSchema = recursiveAnchor === null ? lookup[__absolute_recursive_ref__] : recursiveAnchor;
-    const keywordLocation = `${schemaLocation}/$recursiveRef`;
-    const result2 = validate2(instance, recursiveAnchor === null ? schema : recursiveAnchor, draft, lookup, shortCircuit, refSchema, instanceLocation, keywordLocation, evaluated);
-    if (!result2.valid) {
-      errors.push({
-        instanceLocation,
-        keyword: "$recursiveRef",
-        keywordLocation,
-        error: "A subschema had errors."
-      }, ...result2.errors);
-    }
-  }
-  if ($ref !== void 0) {
-    const uri3 = __absolute_ref__ || $ref;
-    const refSchema = lookup[uri3];
-    if (refSchema === void 0) {
-      let message = `Unresolved $ref "${$ref}".`;
-      if (__absolute_ref__ && __absolute_ref__ !== $ref) {
-        message += `  Absolute URI "${__absolute_ref__}".`;
-      }
-      message += `
-Known schemas:
-- ${Object.keys(lookup).join("\n- ")}`;
-      throw new Error(message);
-    }
-    const keywordLocation = `${schemaLocation}/$ref`;
-    const result2 = validate2(instance, refSchema, draft, lookup, shortCircuit, recursiveAnchor, instanceLocation, keywordLocation, evaluated);
-    if (!result2.valid) {
-      errors.push({
-        instanceLocation,
-        keyword: "$ref",
-        keywordLocation,
-        error: "A subschema had errors."
-      }, ...result2.errors);
-    }
-    if (draft === "4" || draft === "7") {
-      return { valid: errors.length === 0, errors };
-    }
-  }
-  if (Array.isArray($type)) {
-    let length = $type.length;
-    let valid = false;
-    for (let i = 0; i < length; i++) {
-      if (instanceType === $type[i] || $type[i] === "integer" && instanceType === "number" && instance % 1 === 0 && instance === instance) {
-        valid = true;
-        break;
-      }
-    }
-    if (!valid) {
-      errors.push({
-        instanceLocation,
-        keyword: "type",
-        keywordLocation: `${schemaLocation}/type`,
-        error: `Instance type "${instanceType}" is invalid. Expected "${$type.join('", "')}".`
-      });
-    }
-  } else if ($type === "integer") {
-    if (instanceType !== "number" || instance % 1 || instance !== instance) {
-      errors.push({
-        instanceLocation,
-        keyword: "type",
-        keywordLocation: `${schemaLocation}/type`,
-        error: `Instance type "${instanceType}" is invalid. Expected "${$type}".`
-      });
-    }
-  } else if ($type !== void 0 && instanceType !== $type) {
-    errors.push({
-      instanceLocation,
-      keyword: "type",
-      keywordLocation: `${schemaLocation}/type`,
-      error: `Instance type "${instanceType}" is invalid. Expected "${$type}".`
-    });
-  }
-  if ($const !== void 0) {
-    if (instanceType === "object" || instanceType === "array") {
-      if (!deepCompareStrict(instance, $const)) {
-        errors.push({
-          instanceLocation,
-          keyword: "const",
-          keywordLocation: `${schemaLocation}/const`,
-          error: `Instance does not match ${JSON.stringify($const)}.`
-        });
-      }
-    } else if (instance !== $const) {
-      errors.push({
-        instanceLocation,
-        keyword: "const",
-        keywordLocation: `${schemaLocation}/const`,
-        error: `Instance does not match ${JSON.stringify($const)}.`
-      });
-    }
-  }
-  if ($enum !== void 0) {
-    if (instanceType === "object" || instanceType === "array") {
-      if (!$enum.some((value) => deepCompareStrict(instance, value))) {
-        errors.push({
-          instanceLocation,
-          keyword: "enum",
-          keywordLocation: `${schemaLocation}/enum`,
-          error: `Instance does not match any of ${JSON.stringify($enum)}.`
-        });
-      }
-    } else if (!$enum.some((value) => instance === value)) {
-      errors.push({
-        instanceLocation,
-        keyword: "enum",
-        keywordLocation: `${schemaLocation}/enum`,
-        error: `Instance does not match any of ${JSON.stringify($enum)}.`
-      });
-    }
-  }
-  if ($not !== void 0) {
-    const keywordLocation = `${schemaLocation}/not`;
-    const result2 = validate2(instance, $not, draft, lookup, shortCircuit, recursiveAnchor, instanceLocation, keywordLocation);
-    if (result2.valid) {
-      errors.push({
-        instanceLocation,
-        keyword: "not",
-        keywordLocation,
-        error: 'Instance matched "not" schema.'
-      });
-    }
-  }
-  let subEvaluateds = [];
-  if ($anyOf !== void 0) {
-    const keywordLocation = `${schemaLocation}/anyOf`;
-    const errorsLength = errors.length;
-    let anyValid = false;
-    for (const [i, subSchema] of $anyOf.entries()) {
-      const subEvaluated = Object.create(evaluated);
-      const result2 = validate2(instance, subSchema, draft, lookup, shortCircuit, $recursiveAnchor === true ? recursiveAnchor : null, instanceLocation, `${keywordLocation}/${i}`, subEvaluated);
-      errors.push(...result2.errors);
-      anyValid = anyValid || result2.valid;
-      if (result2.valid) {
-        subEvaluateds.push(subEvaluated);
-      }
-    }
-    if (anyValid) {
-      errors.length = errorsLength;
-    } else {
-      errors.splice(errorsLength, 0, {
-        instanceLocation,
-        keyword: "anyOf",
-        keywordLocation,
-        error: "Instance does not match any subschemas."
-      });
-    }
-  }
-  if ($allOf !== void 0) {
-    const keywordLocation = `${schemaLocation}/allOf`;
-    const errorsLength = errors.length;
-    let allValid = true;
-    for (const [i, subSchema] of $allOf.entries()) {
-      const subEvaluated = Object.create(evaluated);
-      const result2 = validate2(instance, subSchema, draft, lookup, shortCircuit, $recursiveAnchor === true ? recursiveAnchor : null, instanceLocation, `${keywordLocation}/${i}`, subEvaluated);
-      errors.push(...result2.errors);
-      allValid = allValid && result2.valid;
-      if (result2.valid) {
-        subEvaluateds.push(subEvaluated);
-      }
-    }
-    if (allValid) {
-      errors.length = errorsLength;
-    } else {
-      errors.splice(errorsLength, 0, {
-        instanceLocation,
-        keyword: "allOf",
-        keywordLocation,
-        error: `Instance does not match every subschema.`
-      });
-    }
-  }
-  if ($oneOf !== void 0) {
-    const keywordLocation = `${schemaLocation}/oneOf`;
-    const errorsLength = errors.length;
-    const matches = $oneOf.filter((subSchema, i) => {
-      const subEvaluated = Object.create(evaluated);
-      const result2 = validate2(instance, subSchema, draft, lookup, shortCircuit, $recursiveAnchor === true ? recursiveAnchor : null, instanceLocation, `${keywordLocation}/${i}`, subEvaluated);
-      errors.push(...result2.errors);
-      if (result2.valid) {
-        subEvaluateds.push(subEvaluated);
-      }
-      return result2.valid;
-    }).length;
-    if (matches === 1) {
-      errors.length = errorsLength;
-    } else {
-      errors.splice(errorsLength, 0, {
-        instanceLocation,
-        keyword: "oneOf",
-        keywordLocation,
-        error: `Instance does not match exactly one subschema (${matches} matches).`
-      });
-    }
-  }
-  if (instanceType === "object" || instanceType === "array") {
-    Object.assign(evaluated, ...subEvaluateds);
-  }
-  if ($if !== void 0) {
-    const keywordLocation = `${schemaLocation}/if`;
-    const conditionResult = validate2(instance, $if, draft, lookup, shortCircuit, recursiveAnchor, instanceLocation, keywordLocation, evaluated).valid;
-    if (conditionResult) {
-      if ($then !== void 0) {
-        const thenResult = validate2(instance, $then, draft, lookup, shortCircuit, recursiveAnchor, instanceLocation, `${schemaLocation}/then`, evaluated);
-        if (!thenResult.valid) {
-          errors.push({
-            instanceLocation,
-            keyword: "if",
-            keywordLocation,
-            error: `Instance does not match "then" schema.`
-          }, ...thenResult.errors);
-        }
-      }
-    } else if ($else !== void 0) {
-      const elseResult = validate2(instance, $else, draft, lookup, shortCircuit, recursiveAnchor, instanceLocation, `${schemaLocation}/else`, evaluated);
-      if (!elseResult.valid) {
-        errors.push({
-          instanceLocation,
-          keyword: "if",
-          keywordLocation,
-          error: `Instance does not match "else" schema.`
-        }, ...elseResult.errors);
-      }
-    }
-  }
-  if (instanceType === "object") {
-    if ($required !== void 0) {
-      for (const key of $required) {
-        if (!hasOwnProperty(instance, key)) {
-          errors.push({
-            instanceLocation,
-            keyword: "required",
-            keywordLocation: `${schemaLocation}/required`,
-            error: `Instance does not have required property "${key}".`
-          });
-        }
-      }
-    }
-    const keys = Object.keys(instance);
-    if ($minProperties !== void 0 && keys.length < $minProperties) {
-      errors.push({
-        instanceLocation,
-        keyword: "minProperties",
-        keywordLocation: `${schemaLocation}/minProperties`,
-        error: `Instance does not have at least ${$minProperties} properties.`
-      });
-    }
-    if ($maxProperties !== void 0 && keys.length > $maxProperties) {
-      errors.push({
-        instanceLocation,
-        keyword: "maxProperties",
-        keywordLocation: `${schemaLocation}/maxProperties`,
-        error: `Instance does not have at least ${$maxProperties} properties.`
-      });
-    }
-    if ($propertyNames !== void 0) {
-      const keywordLocation = `${schemaLocation}/propertyNames`;
-      for (const key in instance) {
-        const subInstancePointer = `${instanceLocation}/${encodePointer(key)}`;
-        const result2 = validate2(key, $propertyNames, draft, lookup, shortCircuit, recursiveAnchor, subInstancePointer, keywordLocation);
-        if (!result2.valid) {
-          errors.push({
-            instanceLocation,
-            keyword: "propertyNames",
-            keywordLocation,
-            error: `Property name "${key}" does not match schema.`
-          }, ...result2.errors);
-        }
-      }
-    }
-    if ($dependentRequired !== void 0) {
-      const keywordLocation = `${schemaLocation}/dependantRequired`;
-      for (const key in $dependentRequired) {
-        if (hasOwnProperty(instance, key)) {
-          const required2 = $dependentRequired[key];
-          for (const dependantKey of required2) {
-            if (!hasOwnProperty(instance, dependantKey)) {
-              errors.push({
-                instanceLocation,
-                keyword: "dependentRequired",
-                keywordLocation,
-                error: `Instance has "${key}" but does not have "${dependantKey}".`
-              });
-            }
-          }
-        }
-      }
-    }
-    if ($dependentSchemas !== void 0) {
-      for (const [key, dependentSchema] of Object.entries($dependentSchemas)) {
-        const keywordLocation = `${schemaLocation}/dependentSchemas`;
-        if (hasOwnProperty(instance, key)) {
-          const result2 = validate2(instance, dependentSchema, draft, lookup, shortCircuit, recursiveAnchor, instanceLocation, `${keywordLocation}/${encodePointer(key)}`, evaluated);
-          if (!result2.valid) {
-            errors.push({
-              instanceLocation,
-              keyword: "dependentSchemas",
-              keywordLocation,
-              error: `Instance has "${key}" but does not match dependant schema.`
-            }, ...result2.errors);
-          }
-        }
-      }
-    }
-    if ($dependencies !== void 0) {
-      const keywordLocation = `${schemaLocation}/dependencies`;
-      for (const key in $dependencies) {
-        if (hasOwnProperty(instance, key)) {
-          const propsOrSchema = $dependencies[key];
-          if (Array.isArray(propsOrSchema)) {
-            for (const dependantKey of propsOrSchema) {
-              if (!hasOwnProperty(instance, dependantKey)) {
-                errors.push({
-                  instanceLocation,
-                  keyword: "dependencies",
-                  keywordLocation,
-                  error: `Instance has "${key}" but does not have "${dependantKey}".`
-                });
-              }
-            }
-          } else {
-            const result2 = validate2(instance, propsOrSchema, draft, lookup, shortCircuit, recursiveAnchor, instanceLocation, `${keywordLocation}/${encodePointer(key)}`);
-            if (!result2.valid) {
-              errors.push({
-                instanceLocation,
-                keyword: "dependencies",
-                keywordLocation,
-                error: `Instance has "${key}" but does not match dependant schema.`
-              }, ...result2.errors);
-            }
-          }
-        }
-      }
-    }
-    const thisEvaluated = /* @__PURE__ */ Object.create(null);
-    let stop = false;
-    if ($properties !== void 0) {
-      const keywordLocation = `${schemaLocation}/properties`;
-      for (const [key, propertySchema] of Object.entries($properties)) {
-        if (!hasOwnProperty(instance, key)) {
-          continue;
-        }
-        const subInstancePointer = `${instanceLocation}/${encodePointer(key)}`;
-        const result2 = validate2(instance[key], propertySchema, draft, lookup, shortCircuit, recursiveAnchor, subInstancePointer, `${keywordLocation}/${encodePointer(key)}`);
-        thisEvaluated[key] = true;
-        if (result2.valid) {
-          evaluated[key] = true;
-        } else {
-          stop = shortCircuit;
-          errors.push({
-            instanceLocation,
-            keyword: "properties",
-            keywordLocation,
-            error: `Property "${key}" does not match schema.`
-          }, ...result2.errors);
-          if (stop)
-            break;
-        }
-      }
-    }
-    if (!stop && $patternProperties !== void 0) {
-      const keywordLocation = `${schemaLocation}/patternProperties`;
-      for (const [pattern, subSchema] of Object.entries($patternProperties)) {
-        const regex2 = new RegExp(pattern, "u");
-        for (const key in instance) {
-          if (!regex2.test(key)) {
-            continue;
-          }
-          const subInstancePointer = `${instanceLocation}/${encodePointer(key)}`;
-          const result2 = validate2(instance[key], subSchema, draft, lookup, shortCircuit, recursiveAnchor, subInstancePointer, `${keywordLocation}/${encodePointer(pattern)}`);
-          thisEvaluated[key] = true;
-          if (result2.valid) {
-            evaluated[key] = true;
-          } else {
-            stop = shortCircuit;
-            errors.push({
-              instanceLocation,
-              keyword: "patternProperties",
-              keywordLocation,
-              error: `Property "${key}" matches pattern "${pattern}" but does not match associated schema.`
-            }, ...result2.errors);
-          }
-        }
-      }
-    }
-    if (!stop && $additionalProperties !== void 0) {
-      const keywordLocation = `${schemaLocation}/additionalProperties`;
-      for (const key in instance) {
-        if (thisEvaluated[key]) {
-          continue;
-        }
-        const subInstancePointer = `${instanceLocation}/${encodePointer(key)}`;
-        const result2 = validate2(instance[key], $additionalProperties, draft, lookup, shortCircuit, recursiveAnchor, subInstancePointer, keywordLocation);
-        if (result2.valid) {
-          evaluated[key] = true;
-        } else {
-          stop = shortCircuit;
-          errors.push({
-            instanceLocation,
-            keyword: "additionalProperties",
-            keywordLocation,
-            error: `Property "${key}" does not match additional properties schema.`
-          }, ...result2.errors);
-        }
-      }
-    } else if (!stop && $unevaluatedProperties !== void 0) {
-      const keywordLocation = `${schemaLocation}/unevaluatedProperties`;
-      for (const key in instance) {
-        if (!evaluated[key]) {
-          const subInstancePointer = `${instanceLocation}/${encodePointer(key)}`;
-          const result2 = validate2(instance[key], $unevaluatedProperties, draft, lookup, shortCircuit, recursiveAnchor, subInstancePointer, keywordLocation);
-          if (result2.valid) {
-            evaluated[key] = true;
-          } else {
-            errors.push({
-              instanceLocation,
-              keyword: "unevaluatedProperties",
-              keywordLocation,
-              error: `Property "${key}" does not match unevaluated properties schema.`
-            }, ...result2.errors);
-          }
-        }
-      }
-    }
-  } else if (instanceType === "array") {
-    if ($maxItems !== void 0 && instance.length > $maxItems) {
-      errors.push({
-        instanceLocation,
-        keyword: "maxItems",
-        keywordLocation: `${schemaLocation}/maxItems`,
-        error: `Array has too many items (${instance.length} > ${$maxItems}).`
-      });
-    }
-    if ($minItems !== void 0 && instance.length < $minItems) {
-      errors.push({
-        instanceLocation,
-        keyword: "minItems",
-        keywordLocation: `${schemaLocation}/minItems`,
-        error: `Array has too few items (${instance.length} < ${$minItems}).`
-      });
-    }
-    const length = instance.length;
-    let i = 0;
-    let stop = false;
-    if ($prefixItems !== void 0) {
-      const keywordLocation = `${schemaLocation}/prefixItems`;
-      const length2 = Math.min($prefixItems.length, length);
-      for (; i < length2; i++) {
-        const result2 = validate2(instance[i], $prefixItems[i], draft, lookup, shortCircuit, recursiveAnchor, `${instanceLocation}/${i}`, `${keywordLocation}/${i}`);
-        evaluated[i] = true;
-        if (!result2.valid) {
-          stop = shortCircuit;
-          errors.push({
-            instanceLocation,
-            keyword: "prefixItems",
-            keywordLocation,
-            error: `Items did not match schema.`
-          }, ...result2.errors);
-          if (stop)
-            break;
-        }
-      }
-    }
-    if ($items !== void 0) {
-      const keywordLocation = `${schemaLocation}/items`;
-      if (Array.isArray($items)) {
-        const length2 = Math.min($items.length, length);
-        for (; i < length2; i++) {
-          const result2 = validate2(instance[i], $items[i], draft, lookup, shortCircuit, recursiveAnchor, `${instanceLocation}/${i}`, `${keywordLocation}/${i}`);
-          evaluated[i] = true;
-          if (!result2.valid) {
-            stop = shortCircuit;
-            errors.push({
-              instanceLocation,
-              keyword: "items",
-              keywordLocation,
-              error: `Items did not match schema.`
-            }, ...result2.errors);
-            if (stop)
-              break;
-          }
-        }
-      } else {
-        for (; i < length; i++) {
-          const result2 = validate2(instance[i], $items, draft, lookup, shortCircuit, recursiveAnchor, `${instanceLocation}/${i}`, keywordLocation);
-          evaluated[i] = true;
-          if (!result2.valid) {
-            stop = shortCircuit;
-            errors.push({
-              instanceLocation,
-              keyword: "items",
-              keywordLocation,
-              error: `Items did not match schema.`
-            }, ...result2.errors);
-            if (stop)
-              break;
-          }
-        }
-      }
-      if (!stop && $additionalItems !== void 0) {
-        const keywordLocation2 = `${schemaLocation}/additionalItems`;
-        for (; i < length; i++) {
-          const result2 = validate2(instance[i], $additionalItems, draft, lookup, shortCircuit, recursiveAnchor, `${instanceLocation}/${i}`, keywordLocation2);
-          evaluated[i] = true;
-          if (!result2.valid) {
-            stop = shortCircuit;
-            errors.push({
-              instanceLocation,
-              keyword: "additionalItems",
-              keywordLocation: keywordLocation2,
-              error: `Items did not match additional items schema.`
-            }, ...result2.errors);
-          }
-        }
-      }
-    }
-    if ($contains !== void 0) {
-      if (length === 0 && $minContains === void 0) {
-        errors.push({
-          instanceLocation,
-          keyword: "contains",
-          keywordLocation: `${schemaLocation}/contains`,
-          error: `Array is empty. It must contain at least one item matching the schema.`
-        });
-      } else if ($minContains !== void 0 && length < $minContains) {
-        errors.push({
-          instanceLocation,
-          keyword: "minContains",
-          keywordLocation: `${schemaLocation}/minContains`,
-          error: `Array has less items (${length}) than minContains (${$minContains}).`
-        });
-      } else {
-        const keywordLocation = `${schemaLocation}/contains`;
-        const errorsLength = errors.length;
-        let contained = 0;
-        for (let j2 = 0; j2 < length; j2++) {
-          const result2 = validate2(instance[j2], $contains, draft, lookup, shortCircuit, recursiveAnchor, `${instanceLocation}/${j2}`, keywordLocation);
-          if (result2.valid) {
-            evaluated[j2] = true;
-            contained++;
-          } else {
-            errors.push(...result2.errors);
-          }
-        }
-        if (contained >= ($minContains || 0)) {
-          errors.length = errorsLength;
-        }
-        if ($minContains === void 0 && contained === 0) {
-          errors.splice(errorsLength, 0, {
-            instanceLocation,
-            keyword: "contains",
-            keywordLocation,
-            error: `Array does not contain item matching schema.`
-          });
-        } else if ($minContains !== void 0 && contained < $minContains) {
-          errors.push({
-            instanceLocation,
-            keyword: "minContains",
-            keywordLocation: `${schemaLocation}/minContains`,
-            error: `Array must contain at least ${$minContains} items matching schema. Only ${contained} items were found.`
-          });
-        } else if ($maxContains !== void 0 && contained > $maxContains) {
-          errors.push({
-            instanceLocation,
-            keyword: "maxContains",
-            keywordLocation: `${schemaLocation}/maxContains`,
-            error: `Array may contain at most ${$maxContains} items matching schema. ${contained} items were found.`
-          });
-        }
-      }
-    }
-    if (!stop && $unevaluatedItems !== void 0) {
-      const keywordLocation = `${schemaLocation}/unevaluatedItems`;
-      for (i; i < length; i++) {
-        if (evaluated[i]) {
-          continue;
-        }
-        const result2 = validate2(instance[i], $unevaluatedItems, draft, lookup, shortCircuit, recursiveAnchor, `${instanceLocation}/${i}`, keywordLocation);
-        evaluated[i] = true;
-        if (!result2.valid) {
-          errors.push({
-            instanceLocation,
-            keyword: "unevaluatedItems",
-            keywordLocation,
-            error: `Items did not match unevaluated items schema.`
-          }, ...result2.errors);
-        }
-      }
-    }
-    if ($uniqueItems) {
-      for (let j2 = 0; j2 < length; j2++) {
-        const a = instance[j2];
-        const ao = typeof a === "object" && a !== null;
-        for (let k2 = 0; k2 < length; k2++) {
-          if (j2 === k2) {
-            continue;
-          }
-          const b = instance[k2];
-          const bo = typeof b === "object" && b !== null;
-          if (a === b || ao && bo && deepCompareStrict(a, b)) {
-            errors.push({
-              instanceLocation,
-              keyword: "uniqueItems",
-              keywordLocation: `${schemaLocation}/uniqueItems`,
-              error: `Duplicate items at indexes ${j2} and ${k2}.`
-            });
-            j2 = Number.MAX_SAFE_INTEGER;
-            k2 = Number.MAX_SAFE_INTEGER;
-          }
-        }
-      }
-    }
-  } else if (instanceType === "number") {
-    if (draft === "4") {
-      if ($minimum !== void 0 && ($exclusiveMinimum === true && instance <= $minimum || instance < $minimum)) {
-        errors.push({
-          instanceLocation,
-          keyword: "minimum",
-          keywordLocation: `${schemaLocation}/minimum`,
-          error: `${instance} is less than ${$exclusiveMinimum ? "or equal to " : ""} ${$minimum}.`
-        });
-      }
-      if ($maximum !== void 0 && ($exclusiveMaximum === true && instance >= $maximum || instance > $maximum)) {
-        errors.push({
-          instanceLocation,
-          keyword: "maximum",
-          keywordLocation: `${schemaLocation}/maximum`,
-          error: `${instance} is greater than ${$exclusiveMaximum ? "or equal to " : ""} ${$maximum}.`
-        });
-      }
-    } else {
-      if ($minimum !== void 0 && instance < $minimum) {
-        errors.push({
-          instanceLocation,
-          keyword: "minimum",
-          keywordLocation: `${schemaLocation}/minimum`,
-          error: `${instance} is less than ${$minimum}.`
-        });
-      }
-      if ($maximum !== void 0 && instance > $maximum) {
-        errors.push({
-          instanceLocation,
-          keyword: "maximum",
-          keywordLocation: `${schemaLocation}/maximum`,
-          error: `${instance} is greater than ${$maximum}.`
-        });
-      }
-      if ($exclusiveMinimum !== void 0 && instance <= $exclusiveMinimum) {
-        errors.push({
-          instanceLocation,
-          keyword: "exclusiveMinimum",
-          keywordLocation: `${schemaLocation}/exclusiveMinimum`,
-          error: `${instance} is less than ${$exclusiveMinimum}.`
-        });
-      }
-      if ($exclusiveMaximum !== void 0 && instance >= $exclusiveMaximum) {
-        errors.push({
-          instanceLocation,
-          keyword: "exclusiveMaximum",
-          keywordLocation: `${schemaLocation}/exclusiveMaximum`,
-          error: `${instance} is greater than or equal to ${$exclusiveMaximum}.`
-        });
-      }
-    }
-    if ($multipleOf !== void 0) {
-      if (!isMultipleOf(instance, $multipleOf)) {
-        errors.push({
-          instanceLocation,
-          keyword: "multipleOf",
-          keywordLocation: `${schemaLocation}/multipleOf`,
-          error: `${instance} is not a multiple of ${$multipleOf}.`
-        });
-      }
-    }
-  } else if (instanceType === "string") {
-    const length = $minLength === void 0 && $maxLength === void 0 ? 0 : ucs2length(instance);
-    if ($minLength !== void 0 && length < $minLength) {
-      errors.push({
-        instanceLocation,
-        keyword: "minLength",
-        keywordLocation: `${schemaLocation}/minLength`,
-        error: `String is too short (${length} < ${$minLength}).`
-      });
-    }
-    if ($maxLength !== void 0 && length > $maxLength) {
-      errors.push({
-        instanceLocation,
-        keyword: "maxLength",
-        keywordLocation: `${schemaLocation}/maxLength`,
-        error: `String is too long (${length} > ${$maxLength}).`
-      });
-    }
-    if ($pattern !== void 0 && !new RegExp($pattern, "u").test(instance)) {
-      errors.push({
-        instanceLocation,
-        keyword: "pattern",
-        keywordLocation: `${schemaLocation}/pattern`,
-        error: `String does not match pattern.`
-      });
-    }
-    if ($format !== void 0 && format[$format] && !format[$format](instance)) {
-      errors.push({
-        instanceLocation,
-        keyword: "format",
-        keywordLocation: `${schemaLocation}/format`,
-        error: `String does not match format "${$format}".`
-      });
-    }
-  }
-  return { valid: errors.length === 0, errors };
-}
-
-// node_modules/@cfworker/json-schema/dist/esm/validator.js
-var Validator = class {
-  schema;
-  draft;
-  shortCircuit;
-  lookup;
-  constructor(schema, draft = "2019-09", shortCircuit = true) {
-    this.schema = schema;
-    this.draft = draft;
-    this.shortCircuit = shortCircuit;
-    this.lookup = dereference(schema);
-  }
-  validate(instance) {
-    return validate2(instance, this.schema, this.draft, this.lookup, this.shortCircuit);
-  }
-  addSchema(schema, id) {
-    if (id) {
-      schema = { ...schema, $id: id };
-    }
-    dereference(schema, this.lookup);
-  }
-};
-
-// node_modules/@openai/mcp-extensions/dist/server/forms/fields.js
-var optionSchema = TitledSingleSelectEnumSchemaSchema.shape.oneOf.element.extend({
-  "x-openai-thumbnail": IconSchema.optional(),
-  /** @deprecated Use x-openai-thumbnail. */
-  "x-openai-preview": IconSchema.optional(),
-  description: external_exports.string().optional()
-});
-var arrayFieldShape = TitledMultiSelectEnumSchemaSchema.omit({
-  items: true
-}).shape;
-var stringFieldSchema = StringSchemaSchema.extend({
-  pattern: external_exports.string().optional(),
-  "x-openai-suggestions": external_exports.array(optionSchema).optional()
-});
-var noCustomInput = { "x-openai-input": external_exports.never().optional() };
-var singleSelectSchema = TitledSingleSelectEnumSchemaSchema.extend({
-  ...noCustomInput,
-  oneOf: external_exports.array(optionSchema),
-  anyOf: external_exports.never().optional()
-});
-var stringArraySchema = external_exports.object({
-  ...arrayFieldShape,
-  ...noCustomInput,
-  uniqueItems: external_exports.boolean().optional(),
-  items: stringFieldSchema.extend({
-    enum: external_exports.never().optional(),
-    oneOf: external_exports.never().optional(),
-    anyOf: external_exports.never().optional()
-  })
-});
-var multiSelectSchema = TitledMultiSelectEnumSchemaSchema.extend({
-  ...noCustomInput,
-  items: external_exports.object({
-    enum: external_exports.never().optional(),
-    anyOf: external_exports.array(optionSchema)
-  })
-});
-var untitledMultiSelectSchema = UntitledMultiSelectEnumSchemaSchema.extend({
-  ...noCustomInput,
-  items: UntitledMultiSelectEnumSchemaSchema.shape.items.extend({
-    anyOf: external_exports.never().optional()
-  })
-});
-var primitiveSchemas = [
-  LegacyTitledEnumSchemaSchema.extend({
-    ...noCustomInput,
-    oneOf: external_exports.never().optional(),
-    anyOf: external_exports.never().optional()
-  }),
-  stringFieldSchema.extend({
-    ...noCustomInput,
-    enum: external_exports.never().optional(),
-    oneOf: external_exports.never().optional(),
-    anyOf: external_exports.never().optional()
-  }),
-  NumberSchemaSchema.extend(noCustomInput),
-  BooleanSchemaSchema.extend(noCustomInput)
-];
-var standardFieldSchemas = [
-  singleSelectSchema,
-  multiSelectSchema,
-  untitledMultiSelectSchema,
-  ...primitiveSchemas,
-  stringArraySchema
-];
-
-// node_modules/@openai/mcp-extensions/dist/server/forms/file-picker.js
-var userOptionsSchema = external_exports.object({
-  kind: external_exports.enum(["file", "directory"]).optional(),
-  accept: external_exports.array(external_exports.string()).optional()
-});
-var fileInputSchema = external_exports.object({
-  type: external_exports.enum(["resource", "file"]),
-  options: external_exports.array(ResourceSchema),
-  userOptions: userOptionsSchema.optional(),
-  selection: external_exports.enum(["explicit", "implicit"]).optional()
-});
-var uriSchema = stringFieldSchema.extend({
-  format: external_exports.literal("uri"),
-  enum: external_exports.never().optional(),
-  oneOf: external_exports.never().optional(),
-  anyOf: external_exports.never().optional()
-});
-var OpenAIFileFormFieldSchema = external_exports.discriminatedUnion("type", [
-  uriSchema.extend({
-    "x-openai-input": fileInputSchema.extend({
-      selection: external_exports.never().optional()
-    })
-  }),
-  external_exports.object({
-    ...arrayFieldShape,
-    items: uriSchema,
-    "x-openai-input": fileInputSchema
-  })
-]).superRefine((field, context) => {
-  const input2 = field["x-openai-input"];
-  if (field.default != null) {
-    if (input2.selection === "implicit") {
-      context.addIssue({
-        code: "custom",
-        path: ["default"],
-        message: "Implicit selection cannot specify a default"
-      });
-    }
-    const defaults = Array.isArray(field.default) ? field.default : [field.default];
-    if (defaults.some((uri3) => !input2.options.some((option) => option.uri === uri3))) {
-      context.addIssue({
-        code: "custom",
-        path: ["default"],
-        message: "Defaults must name supplied resources"
-      });
-    }
-  }
-});
-function isValidFileSelection(input2, value) {
-  const selected = Array.isArray(value) ? value : [value];
-  return input2.selection === "implicit" || input2.userOptions != null || selected.every((uri3) => input2.options.some((option) => option.uri === uri3));
-}
-
-// node_modules/@openai/mcp-extensions/dist/server/forms/schema.js
-var OpenAIFormFieldSchema = external_exports.union([
-  OpenAIFileFormFieldSchema,
-  ...standardFieldSchemas
-]);
-var OpenAIFormSchema = external_exports.object({
-  $schema: external_exports.string().optional(),
-  type: external_exports.literal("object"),
-  required: external_exports.array(external_exports.string()).optional(),
-  properties: createFormRecordSchema(OpenAIFormFieldSchema)
-});
-var FormContentSchema = createFormRecordSchema(external_exports.union([external_exports.string(), external_exports.number(), external_exports.boolean(), external_exports.array(external_exports.string())]));
-var OpenAIFormResultSchema = external_exports.discriminatedUnion("action", [
-  external_exports.object({ action: external_exports.literal("accept"), content: FormContentSchema }),
-  external_exports.object({ action: external_exports.enum(["cancel", "decline"]) })
-]);
-function createOpenAIFormContentSchema(form) {
-  const validator = new Validator(structuredClone(form), "2020-12", false);
-  return FormContentSchema.superRefine((content, context) => {
-    const result2 = validator.validate(Object.setPrototypeOf({ ...content }, null));
-    for (const error62 of result2.errors) {
-      if (error62.keywordLocation === "#/required") {
-        continue;
-      }
-      context.addIssue({
-        code: "custom",
-        path: error62.instanceLocation.split("/").slice(1).map((part) => part.replace(/~1/g, "/").replace(/~0/g, "~")),
-        message: error62.error
-      });
-    }
-    for (const name of form.required ?? []) {
-      if (!Object.hasOwn(content, name)) {
-        context.addIssue({
-          code: "custom",
-          path: [name],
-          message: "Required field"
-        });
-      }
-    }
-    for (const [name, field] of Object.entries(form.properties)) {
-      if (!Object.hasOwn(content, name)) {
-        continue;
-      }
-      if (field["x-openai-input"] != null && !isValidFileSelection(field["x-openai-input"], content[name])) {
-        context.addIssue({
-          code: "custom",
-          path: [name],
-          message: "Invalid file selection"
-        });
-      }
-    }
-  });
-}
-function createFormRecordSchema(valueSchema) {
-  return external_exports.custom((value) => external_exports.record(external_exports.string(), external_exports.unknown()).safeParse(value).success).transform((value) => Object.entries(value)).pipe(external_exports.array(external_exports.tuple([external_exports.string(), valueSchema.nonoptional()]))).transform((entries) => Object.fromEntries(entries));
-}
-
-// node_modules/@openai/mcp-extensions/dist/server/forms/elicitation.js
-var OPENAI_ELICITATION_EXTENSION_ID = "openai/elicitation";
-var OPENAI_ELICITATION_METHOD = "openai/elicitation/create";
-var OpenAIFormClientCapabilitiesSchema = external_exports.object({
-  extensions: external_exports.object({
-    [OPENAI_ELICITATION_EXTENSION_ID]: external_exports.object({ form: external_exports.object({}) })
-  })
-});
-function createElicitInput(server2) {
-  return async (params, options) => {
-    const capabilities = OpenAIFormClientCapabilitiesSchema.safeParse(server2.server.getClientCapabilities());
-    if (!capabilities.success) {
-      throw new Error(`The MCP client does not support ${OPENAI_ELICITATION_EXTENSION_ID} form requests`);
-    }
-    const requestedSchema = OpenAIFormSchema.parse(params.requestedSchema);
-    const result2 = await server2.server.request({
-      method: OPENAI_ELICITATION_METHOD,
-      params: { ...params, requestedSchema }
-    }, OpenAIFormResultSchema, options);
-    if (result2.action === "accept") {
-      return {
-        ...result2,
-        content: createOpenAIFormContentSchema(requestedSchema).parse(result2.content)
-      };
-    }
-    return result2;
-  };
-}
-
-// node_modules/@openai/mcp-extensions/dist/shared/strings.js
-var NonBlankStringSchema = external_exports.string().regex(/\S/);
-
-// node_modules/@openai/mcp-extensions/dist/server/mentions.js
-var OpenAIMentionResourceSchema = external_exports.strictObject({
-  icons: external_exports.array(IconSchema).optional(),
-  resourceUri: NonBlankStringSchema,
-  subtitle: NonBlankStringSchema.optional(),
-  title: NonBlankStringSchema,
-  type: external_exports.literal("resource")
-});
-var OpenAIMentionItemSchema = external_exports.discriminatedUnion("type", [
-  ResourceLinkSchema,
-  OpenAIMentionResourceSchema
-]);
-var OpenAIMentionSearchParamsSchema = external_exports.object({
-  query: external_exports.string()
-});
-var OpenAIMentionSearchResultSchema = external_exports.strictObject({
-  items: external_exports.array(OpenAIMentionItemSchema)
-});
-function createMentions(server2) {
-  let mentionSearchHandler = null;
-  let mentionsRegistered = false;
-  return {
-    setHandler: (handler) => {
-      if (!mentionsRegistered) {
-        server2.registerTool("search_mentions", {
-          annotations: { readOnlyHint: true },
-          inputSchema: OpenAIMentionSearchParamsSchema,
-          outputSchema: OpenAIMentionSearchResultSchema,
-          _meta: {
-            "openai/extensions": { "mentions/search": {} },
-            ui: { visibility: ["app"] }
-          }
-        }, async (params, extra) => ({
-          content: [],
-          structuredContent: mentionSearchHandler == null ? { items: [] } : await mentionSearchHandler(params, extra)
-        }));
-        mentionsRegistered = true;
-      }
-      mentionSearchHandler = handler;
-    }
-  };
-}
-
-// node_modules/@openai/mcp-extensions/dist/server/settings.js
-var OPENAI_SETTINGS_CAPABILITY_KEY = "openai/settings";
-var OpenAISettingsCapabilitySchema = external_exports.object({
-  readTool: NonBlankStringSchema,
-  /** Name of the settings update tool on the same MCP server. */
-  updateTool: NonBlankStringSchema
-});
-var OpenAISettingsPropertySchema = external_exports.strictObject({
-  kind: external_exports.literal("property"),
-  property: external_exports.string()
-});
-var OpenAISettingsToolSchema = external_exports.strictObject({
-  kind: external_exports.literal("tool"),
-  tool: NonBlankStringSchema,
-  title: NonBlankStringSchema,
-  description: external_exports.string().optional()
-});
-var settingsLayoutLeafSchema = external_exports.discriminatedUnion("kind", [
-  OpenAISettingsPropertySchema,
-  OpenAISettingsToolSchema
-]);
-var OpenAISettingsGroupSchema = external_exports.strictObject({
-  kind: external_exports.literal("group"),
-  title: NonBlankStringSchema,
-  items: external_exports.array(settingsLayoutLeafSchema)
-});
-var OpenAISettingsLayoutItemSchema = OpenAISettingsGroupSchema;
-var OpenAISettingsFieldPresentationSchema = external_exports.object({
-  title: NonBlankStringSchema,
-  description: external_exports.string().optional()
-});
-var nativeSettingsFieldSchema = external_exports.object({
-  type: external_exports.enum(["boolean", "string", "number", "integer"]),
-  enum: external_exports.array(external_exports.string()).nonempty().optional(),
-  $ref: external_exports.never().optional(),
-  anyOf: external_exports.never().optional(),
-  oneOf: external_exports.never().optional(),
-  allOf: external_exports.never().optional()
-}).refine((field) => field.enum === void 0 || field.type === "string");
-var OpenAISettingsReadResultSchema = external_exports.object({
-  schema: external_exports.looseObject({
-    type: external_exports.literal("object"),
-    properties: external_exports.record(external_exports.string(), external_exports.unknown()).optional(),
-    required: external_exports.array(external_exports.string()).optional()
-  }),
-  layout: external_exports.array(OpenAISettingsLayoutItemSchema).optional(),
-  values: external_exports.record(external_exports.string(), external_exports.unknown())
-}).superRefine(({ schema, layout }, context) => {
-  const seen = /* @__PURE__ */ new Set();
-  for (const item of layout ?? []) {
-    for (const entry of item.items) {
-      if (entry.kind !== "property")
-        continue;
-      if (!Object.hasOwn(schema.properties ?? {}, entry.property) || seen.has(entry.property)) {
-        context.addIssue({
-          code: "custom",
-          path: ["layout"],
-          message: `Unknown or duplicate settings key: ${entry.property}`
-        });
-      }
-      seen.add(entry.property);
-    }
-  }
-});
-var OpenAISettingsUpdateArgumentsSchema = external_exports.strictObject({
-  set: external_exports.record(external_exports.string(), external_exports.unknown()).refine((set2) => Object.keys(set2).length > 0, "Set at least one setting.").meta({ minProperties: 1 })
-});
-var OpenAISettingsUpdateResultSchema = external_exports.object({
-  values: external_exports.record(external_exports.string(), external_exports.unknown())
-});
-function createSettings(server2) {
-  const registered = /* @__PURE__ */ Symbol.for("@openai/mcp-extensions/settings/registered");
-  return {
-    register(options) {
-      if (registered in server2)
-        throw new Error("Settings are already registered on this server.");
-      if (server2.server.transport)
-        throw new Error("Register settings before connecting the server.");
-      const readTool = NonBlankStringSchema.parse(options.readTool ?? "settings.read");
-      const updateTool = NonBlankStringSchema.parse(options.updateTool ?? "settings.update");
-      if (readTool === updateTool) {
-        throw new Error("Settings read and update tools must have different names.");
-      }
-      const shape = Object.fromEntries(Object.entries(options.fields).map(([name, field]) => {
-        return [
-          name,
-          field.schema.meta({
-            ...field.schema.meta(),
-            title: field.title,
-            description: field.description
-          })
-        ];
-      }));
-      const valuesSchema = external_exports.strictObject(shape).required();
-      const schema = ToolSchema.shape.inputSchema.parse(external_exports.toJSONSchema(valuesSchema));
-      for (const [name, property] of Object.entries(schema.properties ?? {})) {
-        OpenAISettingsFieldPresentationSchema.parse(property);
-        if (!nativeSettingsFieldSchema.safeParse(property).success) {
-          throw new Error(`Unsupported native setting ${JSON.stringify(name)}: use a boolean, string, string enum, number, or integer field.`);
-        }
-        if (typeof property === "object" && property !== null && "default" in property) {
-          throw new Error("Settings defaults must be returned by the read handler, not declared in the schema.");
-        }
-      }
-      const { layout } = OpenAISettingsReadResultSchema.parse({
-        schema,
-        layout: options.layout,
-        values: {}
-      });
-      const setSchema = external_exports.strictObject(shape).partial().refine((set2) => Object.keys(set2).length > 0, "Set at least one setting.").meta({ minProperties: 1 });
-      const registeredReadTool = server2.registerTool(readTool, {
-        inputSchema: external_exports.strictObject({}),
-        outputSchema: OpenAISettingsReadResultSchema.safeExtend({
-          values: valuesSchema
-        }),
-        annotations: { readOnlyHint: true }
-      }, async (_args, extra) => ({
-        content: [],
-        structuredContent: {
-          schema,
-          ...layout === void 0 ? {} : { layout },
-          values: valuesSchema.parse(await options.read(extra))
-        }
-      }));
-      try {
-        server2.registerTool(updateTool, {
-          inputSchema: external_exports.strictObject({ set: setSchema }),
-          outputSchema: OpenAISettingsUpdateResultSchema.extend({
-            values: valuesSchema
-          })
-        }, async ({ set: set2 }, extra) => ({
-          content: [],
-          // The MCP SDK validated set against the partial form of this same schema.
-          structuredContent: {
-            values: valuesSchema.parse(await options.update(set2, extra))
-          }
-        }));
-        const capability = { readTool, updateTool };
-        server2.server.registerCapabilities({
-          extensions: { [OPENAI_SETTINGS_CAPABILITY_KEY]: capability },
-          experimental: { [OPENAI_SETTINGS_CAPABILITY_KEY]: capability }
-        });
-        Object.defineProperty(server2, registered, { value: true });
-      } catch (error62) {
-        registeredReadTool.remove();
-        throw error62;
-      }
-    }
-  };
-}
-
-// node_modules/@openai/mcp-extensions/dist/server/extensions.js
-var OpenAIExtensions = class {
-  elicitInput;
-  mentions;
-  settings;
-  constructor(server2) {
-    this.elicitInput = createElicitInput(server2);
-    this.mentions = createMentions(server2);
-    this.settings = createSettings(server2);
-  }
-};
-
 // src/server/index.mjs
 var home = homedir2();
 var dataDirectory = process.env.TASKBOARD_DATA_DIR || join4(home, "Library", "Application Support", "TaskBoard");
@@ -39394,7 +37889,7 @@ var iconFile = new URL("../assets/icon.svg", import.meta.url);
 var icon = await readFile4(iconFile);
 var encodedIcon = icon.toString("base64");
 var icons = [{ src: "data:image/svg+xml;base64," + encodedIcon, mimeType: "image/svg+xml", sizes: ["any"] }];
-var server = new McpServer({ name: "taskboard", version: "0.8.0", icons });
+var server = new McpServer({ name: "taskboard", version: "0.8.1", icons });
 var registerHandler = server.server.setRequestHandler.bind(server.server);
 server.server.setRequestHandler = (schema, handler) => {
   if (schema !== ListToolsRequestSchema) return registerHandler(schema, handler);
@@ -39404,9 +37899,8 @@ server.server.setRequestHandler = (schema, handler) => {
     return { ...listed, tools };
   });
 };
-var openaiExtensions = new OpenAIExtensions(server);
-var uri2 = "ui://taskboard/0.8.0/board.html";
-var panelUri = "ui://taskboard/0.8.0/panel.html";
+var uri = "ui://taskboard/0.8.1/board.html";
+var panelUri = "ui://taskboard/0.8.1/panel.html";
 function registerBoardResource(name, resourceUri, preferredDisplayMode) {
   N3(server, name, resourceUri, {}, async () => {
     const file2 = new URL("./app.html", import.meta.url);
@@ -39414,7 +37908,7 @@ function registerBoardResource(name, resourceUri, preferredDisplayMode) {
     return { contents: [{ uri: resourceUri, mimeType: p, text: html, _meta: { ui: { csp: { connectDomains: [], resourceDomains: [] } }, "openai/ui": { preferredDisplayMode, availableDisplayModes: ["inline", "fullscreen"] } } }] };
   });
 }
-registerBoardResource("taskboard", uri2, "fullscreen");
+registerBoardResource("taskboard", uri, "fullscreen");
 registerBoardResource("taskboard-panel", panelUri, "inline");
 var readOnly = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
 var write = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
@@ -39432,7 +37926,7 @@ function handle(callback) {
   };
 }
 function register(name, description, inputSchema, annotations, callback, extra = {}, title) {
-  K3(server, name, { title, icons, description, inputSchema, annotations, _meta: { ui: { resourceUri: uri2, visibility: ["app", "model"] }, ...extra } }, handle(callback));
+  K3(server, name, { title, icons, description, inputSchema, annotations, _meta: { ui: { resourceUri: uri, visibility: ["app", "model"] }, ...extra } }, handle(callback));
 }
 async function launchState() {
   store = await loadStore(dataDirectory);
@@ -39451,21 +37945,20 @@ register("taskboard_open", "Open TaskBoard fullscreen from the Codex sidebar.", 
 register("taskboard_open_panel", "Open TaskBoard alongside a Codex chat.", {}, readOnly, launchState, { ui: { resourceUri: panelUri, visibility: ["app", "model"] }, "openai/ui": { entrypoints: [{ type: "thread" }] } }, "TaskBoard");
 register("taskboard_read", "Read current tasks, project links, revision, and the last agent-refreshed Codex project catalog.", {}, readOnly, readBoard);
 register("taskboard_connect", "Choose and import a private connection file on this Mac.", {}, write, async (args, extra) => {
-  const form = connectionFileForm();
-  const selected = await openaiExtensions.elicitInput(form, { timeout: 3e5, relatedRequestId: extra.requestId });
-  if (selected.action !== "accept") {
+  const selected = await chooseConnectionFile(extra.signal);
+  if (selected === null) {
     const state = await launchState();
     return { ...state, connectionCancelled: true };
   }
-  const connected = await connectFromFile(dataDirectory, selected.content.connectionFile);
+  const connected = await connectFromFile(dataDirectory, selected);
   store = connected.store;
   return connected.data;
-}, { ui: { resourceUri: uri2, visibility: ["app"] } });
+}, { ui: { resourceUri: uri, visibility: ["app"] } });
 register("taskboard_begin_creation", "Start or resume a private board setup request on this Mac.", {}, write, async () => {
   const started = await beginCreation(dataDirectory);
   const prompt = creationPrompt(started.creation.requestId);
   return { connectionRequired: true, ...started, prompt };
-}, { ui: { resourceUri: uri2, visibility: ["app"] } });
+}, { ui: { resourceUri: uri, visibility: ["app"] } });
 register("taskboard_creation_status", "Read the saved Site provisioning request before creating or resuming a board.", { requestId: external_exports.string().uuid() }, readOnly, async (args) => {
   const creation = await readCreation(dataDirectory);
   if (creation === null || creation.requestId !== args.requestId) throw new Error("This board setup request is no longer active.");

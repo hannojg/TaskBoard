@@ -1,5 +1,5 @@
 import { fetchIssue,searchIssues,addImportedIssue,updateImportedIssue } from './github.mjs';
-import { connectFromFile,connectionFileForm } from './connection.mjs';
+import { connectFromFile,chooseConnectionFile } from './connection.mjs';
 import { beginCreation,readCreation,updateCreation,creationPrompt } from '../../scripts/creation.mjs';
 import { chatCatalogSchema } from './chats.mjs';
 import { resolveProject } from './project-details.mjs';
@@ -11,7 +11,6 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
-import { OpenAIExtensions } from '@openai/mcp-extensions/server';
 import { z } from 'zod';
 import { loadStore,boardSchema,catalogSchema,projectSchema,taskSchema } from './store.mjs';
 const home = homedir();
@@ -21,7 +20,7 @@ const iconFile = new URL('../assets/icon.svg',import.meta.url);
 const icon = await readFile(iconFile);
 const encodedIcon = icon.toString('base64');
 const icons = [{src:'data:image/svg+xml;base64,'+encodedIcon,mimeType:'image/svg+xml',sizes:['any']}];
-const server = new McpServer({name:'taskboard',version:'0.8.0',icons});
+const server = new McpServer({name:'taskboard',version:'0.8.1',icons});
 // The SDK omits tool icons from tools/list; expose them at the protocol boundary.
 const registerHandler = server.server.setRequestHandler.bind(server.server);
 server.server.setRequestHandler = (schema,handler) => {
@@ -32,9 +31,8 @@ server.server.setRequestHandler = (schema,handler) => {
   return {...listed,tools};
  });
 };
-const openaiExtensions = new OpenAIExtensions(server);
-const uri = 'ui://taskboard/0.8.0/board.html';
-const panelUri = 'ui://taskboard/0.8.0/panel.html';
+const uri = 'ui://taskboard/0.8.1/board.html';
+const panelUri = 'ui://taskboard/0.8.1/panel.html';
 function registerBoardResource(name,resourceUri,preferredDisplayMode) {
  registerAppResource(server,name,resourceUri,{},async () => {
   const file = new URL('./app.html',import.meta.url);
@@ -68,13 +66,12 @@ register('taskboard_open','Open TaskBoard fullscreen from the Codex sidebar.',{}
 register('taskboard_open_panel','Open TaskBoard alongside a Codex chat.',{},readOnly,launchState,{ui:{resourceUri:panelUri,visibility:['app','model']},'openai/ui':{entrypoints:[{type:'thread'}]}},'TaskBoard');
 register('taskboard_read','Read current tasks, project links, revision, and the last agent-refreshed Codex project catalog.',{},readOnly,readBoard);
 register('taskboard_connect','Choose and import a private connection file on this Mac.',{},write,async (args,extra) => {
- const form = connectionFileForm();
- const selected = await openaiExtensions.elicitInput(form,{timeout:300000,relatedRequestId:extra.requestId});
- if (selected.action !== 'accept') {
+ const selected = await chooseConnectionFile(extra.signal);
+ if (selected === null) {
   const state = await launchState();
   return {...state,connectionCancelled:true};
  }
- const connected = await connectFromFile(dataDirectory,selected.content.connectionFile);
+ const connected = await connectFromFile(dataDirectory,selected);
  store = connected.store;
  return connected.data;
 },{ui:{resourceUri:uri,visibility:['app']}});
