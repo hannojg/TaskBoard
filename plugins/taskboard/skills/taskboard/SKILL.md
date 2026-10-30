@@ -21,6 +21,8 @@ Never read the private connection file into the chat or print its contents. Pass
 
 Use TaskBoard tools as the source of truth for tickets. `taskboard_open` opens the view without reading the board. Call `taskboard_read` before edits to obtain current IDs and revision. If it returns `connectionRequired: true`, direct the user to the setup screen. Preserve unrelated fields on upserts. If a revision conflict occurs, reread and reapply only the requested change.
 
+Visible boards automatically read shared changes every five seconds and on window focus or reconnection. Editing, dragging and saving defer UI updates. A failed local save requires an explicit **Refresh board** before shared data replaces local edits. Automatic refresh does not discover Codex projects or chats; those catalogs still use the agent-assisted sync actions.
+
 For “sync Codex projects,” discover the host's `list_projects` tool and pass returned Codex projects to `taskboard_sync_projects`, preserving `projectId`, `label`, `path`, `hostId`, and `isGitRepository`. Exclude ChatGPT-only projects. Use returned values, never infer IDs from folder names. Refreshing the catalog does not create projects on the board. If desktop tools are unavailable, state that limitation rather than fabricate a catalog.
 
 To link a board project, use the confirmed project ID, folder and host. Find the Git origin from that folder only when a repository URL is needed. Keep the board project's own ID stable. Project-level chat links are not used; individual tickets link to chats. Store the Codex ID in `codexId` and its host in `hostId` using `taskboard_upsert_project`.

@@ -3,6 +3,7 @@ import { chatKey } from '../chat-key.js';
 import { chatUrl,taskChatUrl } from '../task-chat.js';
 import { descriptionImagesReady } from './markdown.js';
 import { descriptionText } from '../description.js';
+import { startAutoRefresh } from './auto-refresh.js';
 export function startBoard(initialData,api) {
 const $ = id => document.getElementById(id);
 
@@ -48,6 +49,7 @@ async function persist() {
  } catch (error) {
   failed = true;
   document.body.classList.add('save-error');
+  $('sync-status').hidden = true;
   $('save-status').textContent = error.message+' Use Refresh board to load the latest saved version.';
   notify(error.message);
   return false;
@@ -620,21 +622,45 @@ $('sync-chats').onclick = () => requestAgent('Use the taskboard skill to refresh
 $('reload-chats').onclick = async () => {
  try { const data = await api.read(); chatCatalog = data.chatCatalog; chatsUpdatedAt = data.chatsUpdatedAt; renderChatPicker(); } catch(error) { $('chat-status').textContent = error.message; }
 };
-$('refresh-board').onclick = async () => {
- try {
-  const result = await api.read(); state = result.state; revision = result.revision; catalog = result.catalog;
-  failed = false; document.body.classList.remove('save-error'); $('save-status').textContent = 'All changes saved'; render();
- } catch(error) { notify(error.message); }
-};
-render();
-return data => {
+function boardBusy() {
+ return saving || dragged !== null || draggedColumn !== null || draggedProject !== null || document.querySelector('dialog[open]') !== null;
+}
+function receive(data,manual = false) {
  chatCatalog = data.chatCatalog; chatsUpdatedAt = data.chatsUpdatedAt;
  if ($('editor').open) renderChatPicker();
- if (saving || failed || document.querySelector('dialog[open]')) return;
- if (data.revision < revision) return;
- state = data.state; revision = data.revision; catalog = data.catalog;
+ if (boardBusy() || (failed && manual === false)) return false;
+ if (manual === false && data.revision < revision) return false;
+ catalog = data.catalog;
+ $('sync-status').hidden = true;
+ if (manual) {
+  failed = false;
+  document.body.classList.remove('save-error');
+  $('save-status').textContent = 'All changes saved';
+ } else if (data.revision === revision) return true;
+ state = data.state; revision = data.revision;
  if (projectFor(selectedProject) === undefined) selectedProject = null;
  render();
-};
+ return true;
+}
+async function refreshBoard(manual) {
+ if (boardBusy() || (failed && manual === false)) return false;
+ try {
+  const result = await api.read();
+  if (boardBusy()) return false;
+  return receive(result,manual);
+ } catch(error) {
+  const status = $('sync-status');
+  status.textContent = failed ? 'Updates paused. Use Refresh board to retry.' : 'Updates unavailable. Retrying…';
+  status.title = error.message;
+  status.hidden = false;
+  if (manual) notify(error.message);
+  return false;
+ }
+}
+const updates = startAutoRefresh(refreshBoard);
+$('refresh-board').onclick = () => updates.refresh(true);
+document.addEventListener('close',() => { void updates.refresh(); },true);
+render();
+return receive;
 
 }

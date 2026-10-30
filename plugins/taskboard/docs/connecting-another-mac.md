@@ -53,7 +53,7 @@ Choose **Sync Codex projects** and let the agent refresh the picker. For a share
 
 Use **Sync chats** to refresh this Mac's chat picker. Existing chat links stay attached to their owning Mac. Sharing the board does not grant one Codex account access to the other account's chats.
 
-Project names, tasks and column order are shared. Use **Refresh board** to load another Mac's changes. Editing requires an internet connection; a stale save is rejected so it cannot overwrite someone else's changes.
+Project names, tasks and column order are shared. Open boards check for another Mac's changes every five seconds while visible and when you return to the window. Updates pause while you edit, drag or save, and resume after you close an editor. **Refresh board** checks immediately. Editing requires an internet connection; a stale save is rejected so it cannot overwrite someone else's changes.
 
 ## Update the plugin
 

@@ -70,7 +70,7 @@ Descriptions show Markdown images inline, including `![Screenshot](https://examp
 
 One private OpenAI Site and its D1 database store the shared board; pasted images live in its private R2 file storage. Each Mac has a separate identity, project bindings and project/chat catalogs. Native chat links retain their owning Mac, avoiding collisions between identical local chat IDs.
 
-Saves require an internet connection. Revision checks reject stale changes; **Refresh board** loads the latest saved data. Connection errors do not create an offline board.
+Saves require an internet connection. Open boards check for updates every five seconds while visible, and immediately when you return to the window or reconnect. Refreshes pause during editing, dragging and saving; closing an editor checks for updates again. Unchanged data does not redraw the board. **Refresh board** checks immediately, including recovery after a failed save. Revision checks reject stale changes, and failed local edits remain protected until you explicitly refresh. Connection errors do not create an offline board.
 
 Local settings live at `~/Library/Application Support/TaskBoard/connection.json`, with owner-only file permissions. The transferable file contains only the Site address and access key. Do not copy the complete local settings file to another Mac, since it also contains this Mac's identity. `TASKBOARD_DATA_DIR` selects an isolated settings directory for development.
 

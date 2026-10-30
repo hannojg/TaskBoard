@@ -33,3 +33,5 @@ html,body{height:100%;overflow:hidden}body{display:flex;flex-direction:column;he
 #setup-choices[hidden],#creation-progress[hidden]{display:none}.setup-option{margin-top:24px}.setup-option+.setup-option{padding-top:24px;border-top:1px solid #dce7f3}.setup-option button{width:100%;margin:0 0 9px}.setup-option p{font-size:12px;line-height:1.6}.setup-option .primary{margin:0 0 9px}#creation-progress{margin-top:26px}#creation-message{font-weight:550;color:inherit}#creation-progress .setup-note{margin:10px 0 18px}#continue-creation{font-size:12px}@media(prefers-color-scheme:dark){.setup-option+.setup-option{border-color:#253a54}}
 
 #description-editor .md-image{display:inline-block;max-width:100%;padding:8px 0;vertical-align:middle}#description-editor .md-image img{display:block;max-width:100%;max-height:280px;object-fit:contain;border-radius:6px}#description-editor .md-image-error{color:#bb7171;font-size:12px}#description-status:empty{display:none}
+
+#sync-status{font-size:10px;line-height:1.5;color:#b45343}@media(prefers-color-scheme:dark){#sync-status{color:#f5aa9d}}
