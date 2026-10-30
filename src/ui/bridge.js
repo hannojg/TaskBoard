@@ -3,7 +3,7 @@ import { OpenAIExtensions } from '@openai/mcp-extensions/app';
 import { startBoard } from './board.js';
 import './markdown.js';
 import './style.css';
-const app = new App({name:'taskboard',version:'0.7.0'});
+const app = new App({name:'taskboard',version:'0.7.1'});
 new OpenAIExtensions(app);
 let accept;
 function unpack(result) {
@@ -37,7 +37,7 @@ async function connect() {
    save:async (state,revision) => { const result = await app.callServerTool({name:'taskboard_save',arguments:{state,revision}}); return unpack(result); },
    openLink:async url => {
     const result = await app.openLink({url});
-    if (result.isError) throw new Error('Codex could not open this chat.');
+    if (result.isError) throw new Error('Codex could not open this link.');
    },
    message:async text => { await app.sendMessage({role:'user',content:[{type:'text',text}]}); }
   });

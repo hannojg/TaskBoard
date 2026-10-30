@@ -39232,7 +39232,7 @@ var iconFile = new URL("../assets/icon.svg", import.meta.url);
 var icon = await readFile2(iconFile);
 var encodedIcon = icon.toString("base64");
 var icons = [{ src: "data:image/svg+xml;base64," + encodedIcon, mimeType: "image/svg+xml", sizes: ["any"] }];
-var server = new McpServer({ name: "taskboard", version: "0.7.0", icons });
+var server = new McpServer({ name: "taskboard", version: "0.7.1", icons });
 var registerHandler = server.server.setRequestHandler.bind(server.server);
 server.server.setRequestHandler = (schema, handler) => {
   if (schema !== ListToolsRequestSchema) return registerHandler(schema, handler);
@@ -39243,8 +39243,8 @@ server.server.setRequestHandler = (schema, handler) => {
   });
 };
 new OpenAIExtensions(server);
-var uri2 = "ui://taskboard/0.7.0/board.html";
-var panelUri = "ui://taskboard/0.7.0/panel.html";
+var uri2 = "ui://taskboard/0.7.1/board.html";
+var panelUri = "ui://taskboard/0.7.1/panel.html";
 function registerBoardResource(name, resourceUri, preferredDisplayMode) {
   N3(server, name, resourceUri, {}, async () => {
     const file2 = new URL("./app.html", import.meta.url);
