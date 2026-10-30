@@ -23,6 +23,7 @@ let editingProject = null;
 let projectLookup = 0;
 let dragged = null;
 let draggedColumn = null;
+let draggedProject = null;
 let toastTimer;
 let issueResults = [];
 let selectedIssue = null;
@@ -55,6 +56,70 @@ async function persist() {
 function projectFor(id) { return state.projects.find(project => project.id === id); }
 function statusFor(id) { return statuses.find(status => status.id === id); }
 function selectProject(id) { selectedProject = id; render(); }
+function clearProjectDrag() {
+ draggedProject = null;
+ for (const node of $('projects').children) node.classList.remove('project-dragging','project-drop-before','project-drop-after');
+}
+function projectDropAfter(event,button) {
+ const bounds = button.getBoundingClientRect();
+ const narrow = window.matchMedia('(max-width:600px)');
+ return narrow.matches ? event.clientX > bounds.left+bounds.width/2 : event.clientY > bounds.top+bounds.height/2;
+}
+function projectButton(item) {
+ const button = element('button','nav-item');
+ button.type = 'button';
+ button.draggable = true;
+ button.dataset.projectId = item.id;
+ button.classList.toggle('active',item.id === selectedProject);
+ button.title = 'Drag to reorder. Alt + Up or Down also moves this project.';
+ const label = element('span','project-nav-label',item.name);
+ const grip = element('span','project-nav-grip','⠿');
+ grip.setAttribute('aria-hidden','true');
+ button.append(label,grip);
+ button.onclick = () => selectProject(item.id);
+ button.ondragstart = event => {
+  if (saving || failed) { event.preventDefault(); return; }
+  draggedProject = item.id;
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain',item.id);
+  button.classList.add('project-dragging');
+ };
+ button.ondragend = clearProjectDrag;
+ button.ondragover = event => {
+  if (draggedProject === null || draggedProject === item.id) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  const after = projectDropAfter(event,button);
+  button.classList.toggle('project-drop-before',after === false);
+  button.classList.toggle('project-drop-after',after);
+ };
+ button.ondragleave = event => {
+  if (button.contains(event.relatedTarget) === false) button.classList.remove('project-drop-before','project-drop-after');
+ };
+ button.ondrop = event => {
+  if (draggedProject === null) return;
+  event.preventDefault();
+  const after = projectDropAfter(event,button);
+  const id = draggedProject;
+  clearProjectDrag();
+  reorderColumn(id,item.id,true,after);
+ };
+ button.onkeydown = async event => {
+  if (event.altKey === false || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
+  event.preventDefault();
+  const index = state.projects.findIndex(project => project.id === item.id);
+  const down = event.key === 'ArrowDown';
+  const next = down ? index+1 : index-1;
+  if (next < 0 || next >= state.projects.length) return;
+  const saved = await reorderColumn(item.id,state.projects[next].id,true,down);
+  if (saved) {
+   for (const node of $('projects').children) {
+    if (node.dataset.projectId === item.id) { node.focus(); break; }
+   }
+  }
+ };
+ return button;
+}
 function linkNode(url,label) {
  const node = element('a','project-link',label);
  const parsed = new URL(url);
@@ -77,7 +142,8 @@ function render() {
  }
  $('projects').replaceChildren();
  for (const item of state.projects) {
-  const button = element('button','nav-item',item.name); button.classList.toggle('active',item.id === selectedProject); button.onclick = () => selectProject(item.id); $('projects').append(button);
+  const button = projectButton(item);
+  $('projects').append(button);
  }
  const board = $('board'); board.replaceChildren();
  const query = $('search').value.toLowerCase();
@@ -152,14 +218,14 @@ function render() {
  }
 }
 function reorderColumn(id,targetId,groupByProject,after) {
- if (id === targetId) return;
+ if (saving || failed || id === targetId) return false;
  if (groupByProject) state.projects = reorderColumns(state.projects,id,targetId,after);
  else {
   const ordered = state.statusOrder.map(statusId => statusFor(statusId));
   const moved = reorderColumns(ordered,id,targetId,after);
   state.statusOrder = moved.map(status => status.id);
  }
- persist();
+ return persist();
 }
 function moveTask(id,group,groupByProject,beforeId) {
  const task = state.tasks.find(item => item.id === id);

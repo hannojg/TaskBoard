@@ -20,7 +20,7 @@ const iconFile = new URL('../assets/icon.svg',import.meta.url);
 const icon = await readFile(iconFile);
 const encodedIcon = icon.toString('base64');
 const icons = [{src:'data:image/svg+xml;base64,'+encodedIcon,mimeType:'image/svg+xml',sizes:['any']}];
-const server = new McpServer({name:'taskboard',version:'0.9.2',icons});
+const server = new McpServer({name:'taskboard',version:'0.9.3',icons});
 // The SDK omits tool icons from tools/list; expose them at the protocol boundary.
 const registerHandler = server.server.setRequestHandler.bind(server.server);
 server.server.setRequestHandler = (schema,handler) => {
@@ -31,8 +31,8 @@ server.server.setRequestHandler = (schema,handler) => {
   return {...listed,tools};
  });
 };
-const uri = 'ui://taskboard/0.9.2/board.html';
-const panelUri = 'ui://taskboard/0.9.2/panel.html';
+const uri = 'ui://taskboard/0.9.3/board.html';
+const panelUri = 'ui://taskboard/0.9.3/panel.html';
 function registerBoardResource(name,resourceUri,preferredDisplayMode) {
  registerAppResource(server,name,resourceUri,{},async () => {
   const file = new URL('./app.html',import.meta.url);

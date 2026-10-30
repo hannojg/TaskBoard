@@ -1232,6 +1232,46 @@ aside > button,
 .column-drop-after {
   box-shadow: inset -3px 0 #629bff;
 }
+#projects .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.project-nav-label {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.project-nav-grip {
+  flex-shrink: 0;
+  color: #8ba1bc;
+  font-size: 16px;
+  line-height: 1;
+  cursor: grab;
+  opacity: 0;
+}
+#projects .nav-item:hover .project-nav-grip,
+#projects .nav-item:focus-visible .project-nav-grip {
+  opacity: 1;
+}
+#projects .project-dragging {
+  opacity: .45;
+  cursor: grabbing;
+}
+#projects .project-drop-before {
+  box-shadow: inset 0 2px #629bff;
+}
+#projects .project-drop-after {
+  box-shadow: inset 0 -2px #629bff;
+}
+@media (max-width: 600px) {
+  #projects .project-drop-before {
+    box-shadow: inset 2px 0 #629bff;
+  }
+  #projects .project-drop-after {
+    box-shadow: inset -2px 0 #629bff;
+  }
+}
 #open-issue-import {
   font-size: 12px;
   margin-bottom: 18px;
@@ -51057,6 +51097,7 @@ container holding the app. Specify either width or maxWidth, and either height o
     let projectLookup = 0;
     let dragged = null;
     let draggedColumn = null;
+    let draggedProject = null;
     let toastTimer;
     let issueResults = [];
     let selectedIssue = null;
@@ -51113,6 +51154,76 @@ container holding the app. Specify either width or maxWidth, and either height o
       selectedProject = id2;
       render();
     }
+    function clearProjectDrag() {
+      draggedProject = null;
+      for (const node2 of $("projects").children) node2.classList.remove("project-dragging", "project-drop-before", "project-drop-after");
+    }
+    function projectDropAfter(event, button) {
+      const bounds = button.getBoundingClientRect();
+      const narrow = window.matchMedia("(max-width:600px)");
+      return narrow.matches ? event.clientX > bounds.left + bounds.width / 2 : event.clientY > bounds.top + bounds.height / 2;
+    }
+    function projectButton(item) {
+      const button = element("button", "nav-item");
+      button.type = "button";
+      button.draggable = true;
+      button.dataset.projectId = item.id;
+      button.classList.toggle("active", item.id === selectedProject);
+      button.title = "Drag to reorder. Alt + Up or Down also moves this project.";
+      const label = element("span", "project-nav-label", item.name);
+      const grip = element("span", "project-nav-grip", "\u283F");
+      grip.setAttribute("aria-hidden", "true");
+      button.append(label, grip);
+      button.onclick = () => selectProject(item.id);
+      button.ondragstart = (event) => {
+        if (saving || failed) {
+          event.preventDefault();
+          return;
+        }
+        draggedProject = item.id;
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", item.id);
+        button.classList.add("project-dragging");
+      };
+      button.ondragend = clearProjectDrag;
+      button.ondragover = (event) => {
+        if (draggedProject === null || draggedProject === item.id) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        const after = projectDropAfter(event, button);
+        button.classList.toggle("project-drop-before", after === false);
+        button.classList.toggle("project-drop-after", after);
+      };
+      button.ondragleave = (event) => {
+        if (button.contains(event.relatedTarget) === false) button.classList.remove("project-drop-before", "project-drop-after");
+      };
+      button.ondrop = (event) => {
+        if (draggedProject === null) return;
+        event.preventDefault();
+        const after = projectDropAfter(event, button);
+        const id2 = draggedProject;
+        clearProjectDrag();
+        reorderColumn(id2, item.id, true, after);
+      };
+      button.onkeydown = async (event) => {
+        if (event.altKey === false || event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+        event.preventDefault();
+        const index = state.projects.findIndex((project) => project.id === item.id);
+        const down = event.key === "ArrowDown";
+        const next = down ? index + 1 : index - 1;
+        if (next < 0 || next >= state.projects.length) return;
+        const saved = await reorderColumn(item.id, state.projects[next].id, true, down);
+        if (saved) {
+          for (const node2 of $("projects").children) {
+            if (node2.dataset.projectId === item.id) {
+              node2.focus();
+              break;
+            }
+          }
+        }
+      };
+      return button;
+    }
     function linkNode(url2, label) {
       const node2 = element("a", "project-link", label);
       const parsed = new URL(url2);
@@ -51145,9 +51256,7 @@ container holding the app. Specify either width or maxWidth, and either height o
       }
       $("projects").replaceChildren();
       for (const item of state.projects) {
-        const button = element("button", "nav-item", item.name);
-        button.classList.toggle("active", item.id === selectedProject);
-        button.onclick = () => selectProject(item.id);
+        const button = projectButton(item);
         $("projects").append(button);
       }
       const board = $("board");
@@ -51255,14 +51364,14 @@ container holding the app. Specify either width or maxWidth, and either height o
       }
     }
     function reorderColumn(id2, targetId, groupByProject, after) {
-      if (id2 === targetId) return;
+      if (saving || failed || id2 === targetId) return false;
       if (groupByProject) state.projects = reorderColumns(state.projects, id2, targetId, after);
       else {
         const ordered = state.statusOrder.map((statusId) => statusFor(statusId));
         const moved = reorderColumns(ordered, id2, targetId, after);
         state.statusOrder = moved.map((status2) => status2.id);
       }
-      persist();
+      return persist();
     }
     function moveTask(id2, group, groupByProject, beforeId) {
       const task = state.tasks.find((item) => item.id === id2);
@@ -51884,7 +51993,7 @@ container holding the app. Specify either width or maxWidth, and either height o
   }
 
   // src/ui/bridge.js
-  var app = new i({ name: "taskboard", version: "0.9.2" });
+  var app = new i({ name: "taskboard", version: "0.9.3" });
   new OpenAIExtensions(app);
   var accept;
   var workspace = document.getElementById("workspace");

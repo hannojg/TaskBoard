@@ -56,6 +56,8 @@ Reload Codex after updating. Connection settings and this Mac's device identity 
 
 Open **TaskBoard** from Codex's plugin sidebar. A separate entrypoint opens it beside a chat. Project and status views share the same tasks and column order. Drag a column's handle to reorder it, or focus the handle and press Alt+Left/Right.
 
+Drag projects in the sidebar to reorder them, or focus a project and press Alt+Up/Down. The order is shared across Macs and also controls the project columns in the overview.
+
 **Sync Codex projects** asks the agent to refresh the project picker. Edit an existing shared project to link its local Codex project on this Mac. **Sync chats** refreshes recent chat metadata; **Reload list** loads that catalog without discarding unsaved task edits. The embedded page uses TaskBoard tools; project and chat discovery runs through the agent.
 
 Linked chats can be searched, attached and opened from cards or the task editor. **Create agent chat** saves the ticket and opens an unsent Codex draft containing its context. Opening a draft does not create a chat relation; after you send it, the agent can link the confirmed chat back to the ticket. Chat activity does not automatically change task status.
