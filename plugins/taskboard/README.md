@@ -2,7 +2,7 @@
 
 A Codex desktop plugin for one shared project and task overview across Macs, including Macs signed in to different Codex accounts. Projects live in the sidebar; the overview groups tasks by project or status. Tasks support Markdown descriptions, priorities, due dates, GitHub issue imports and links to Codex chats.
 
-The plugin is public. Your board is private and requires a separate connection file.
+The plugin is public. Your board is private; a separate connection file lets you share it with another Mac.
 
 ## Install
 
@@ -21,16 +21,27 @@ codex plugin add taskboard@taskboard-local
 
 The installable bundle is committed under `plugins/taskboard/`, so installation does not require a build. This plugin requires Codex for macOS and uses its bundled Node runtime.
 
-## Connect to your board
+## First launch
+
+Open **TaskBoard** from the sidebar and choose:
+
+- **Create a new board** for your first setup. Codex creates a private OpenAI Site and database through the **Sites** plugin, then connects this Mac automatically. Setup runs in the chat; keep TaskBoard open to see its progress. If interrupted, **Continue setup in chat** or **Retry creating board** resumes the same board.
+- **Connect to an existing board** if another Mac already has your board. Select the private connection file exported from that Mac.
+
+Creating a board requires the Sites plugin and access to create private Sites. Connecting to an existing board only requires its connection file. Installing TaskBoard alone does not create storage or grant access to another person's board.
+
+See [Create your first board](docs/creating-a-board.md) for setup and recovery details.
+
+## Connect another Mac
 
 1. On a Mac already connected to the board, ask Codex: **“Use the TaskBoard skill to export my private board connection file to Downloads. Do not display the access key.”**
 2. Transfer `TaskBoard-connection.json` privately to the new Mac's Downloads folder.
 3. Install TaskBoard on the new Mac and open it from the sidebar.
-4. On the setup screen, click **Choose connection file** and select the received JSON file. TaskBoard validates the connection and opens your board immediately.
+4. On the setup screen, click **Connect to an existing board** and select the received JSON file. TaskBoard validates the connection and opens your board immediately.
 
 The exported file grants read and write access to the shared board. Keep it private. It is never included in this repository or the plugin bundle.
 
-See [Connect another Mac](docs/connecting-another-mac.md) for the full walkthrough, local project linking, updates and troubleshooting. A new installation requires access to an existing TaskBoard Shared Site; installing the public plugin does not provision a hosted board.
+See [Connect another Mac](docs/connecting-another-mac.md) for the full walkthrough, local project linking, updates and troubleshooting.
 
 ## Updates
 
@@ -85,4 +96,6 @@ Exporting creates a private file in Downloads. An optional output path is accept
 
 `node scripts/migrate-shared.mjs` imports the previous local SQLite board into an empty shared board and refuses to overwrite existing shared changes. The original database is retained as a migration snapshot; the plugin no longer uses it for board storage.
 
-The shared API source is `src/cloud/board-api.mjs`. `npm run build` also bundles it into `site/lib/board-api.mjs`. The `site/` directory contains the OpenAI Sites deployment source, currently linked to the maintainer's private Site. To host your own board, provision your own private Site and use its project ID and service access credential. Generate schema migrations from `site/` with `npm run db:generate`, then publish through the Sites workflow. Publishing this Git repository does not publish the Site or expose its board data.
+The shared API source is `src/cloud/board-api.mjs`. `npm run build` also bundles it into `site/lib/board-api.mjs`. The root `site/` directory is linked to the maintainer's private Site. The installable plugin includes only the template files listed in `scripts/board-template.mjs`, excluding that Site's identity and credentials. The create-board workflow overlays those files onto a fresh Sites Vinext starter and publishes a new owner-private Site.
+
+Provisioning progress lives in `~/Library/Application Support/TaskBoard/creation.json`, without credentials. Retries preserve the request ID, source directory and confirmed Site ID. The completion helper receives the new Site's connection through hidden stdin, validates access and saves the private local connection. Generate schema migrations from `site/` with `npm run db:generate`, then rebuild and package to update the template. Publishing this Git repository does not publish the Site or expose its board data.

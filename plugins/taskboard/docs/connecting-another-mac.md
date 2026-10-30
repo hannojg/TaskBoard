@@ -2,7 +2,7 @@
 
 Each Mac installs the same public TaskBoard plugin. A separate, private connection file grants access to your shared board. The Macs can use different Codex accounts.
 
-You need Codex for macOS, its `codex` command, and an existing TaskBoard Shared board. Installing the public plugin does not create a board or grant access to someone else's board.
+You need Codex for macOS, its `codex` command, and an existing TaskBoard Shared board. For your first board, follow [Create your first board](creating-a-board.md). Installing the public plugin does not grant access to someone else's board.
 
 ## 1. Export the connection on a connected Mac
 
@@ -39,7 +39,7 @@ The repository includes the built plugin. No source build or separate Node insta
 
 ## 4. Import the private file
 
-TaskBoard opens a **Connect your shared board** screen. Click **Choose connection file** and select the received `TaskBoard-connection.json` in Codex's file picker.
+TaskBoard opens a welcome screen with two choices. Click **Connect to an existing board** and select the received `TaskBoard-connection.json` in Codex's file picker. **Create a new board** creates separate storage; use the connection option to share the board you already have.
 
 TaskBoard reads the file locally, checks access to the shared board, saves the connection privately on this Mac, and opens the board immediately. The access key is not sent to the embedded page or chat. If you cancel the picker, the setup screen remains available. If the file is invalid or access fails, the screen explains the problem and lets you choose again; failed validation does not replace existing settings.
 
@@ -79,7 +79,7 @@ This changes the plugin's update source. It leaves the imported board connection
 ## Troubleshooting
 
 - **The skill is unavailable:** install TaskBoard and start a new Codex chat.
-- **The connection file cannot be found:** locate the received file in Finder, then select it with **Choose connection file**.
+- **The connection file cannot be found:** locate the received file in Finder, then select it with **Connect to an existing board**.
 - **Access is denied:** obtain a current export from a Mac that can still access the board and select that file. Existing settings remain unchanged if validation fails.
 - **The board changed elsewhere:** choose **Refresh board**, then reapply your edit.
 - **Projects have no local folders:** sync this Mac's Codex projects and link them as described above.

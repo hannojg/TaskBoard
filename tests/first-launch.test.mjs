@@ -6,6 +6,7 @@ import { join,resolve } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { z } from 'zod';
+import { sharedFixture } from './support/shared.mjs';
 
 async function fixture(t,configured = false) {
  const temporary = tmpdir();
@@ -34,9 +35,33 @@ test('a fresh installation opens both views and returns setup without a connecti
  const listed = await client.listTools();
  const opener = listed.tools.find(tool => tool.name === 'taskboard_open');
  const resource = await client.readResource({uri:opener._meta.ui.resourceUri});
- assert.match(resource.contents[0].text,/Choose connection file/);
+ assert.equal(resource.contents[0].text.includes('Create a new board'),true);
+ assert.equal(resource.contents[0].text.includes('Connect to an existing board'),true);
  const path = join(directory,'connection.json');
  await assert.rejects(access(path));
+});
+
+test('creation requests are reused and notice a completed connection without reloading',async t => {
+ const {client,transport,directory} = await fixture(t);
+ await client.connect(transport);
+ const started = await client.callTool({name:'taskboard_begin_creation',arguments:{}});
+ assert.notEqual(started.isError,true);
+ const creation = started.structuredContent.creation;
+ const again = await client.callTool({name:'taskboard_begin_creation',arguments:{}});
+ assert.equal(again.structuredContent.creation.requestId,creation.requestId);
+ assert.equal(again.structuredContent.shouldRequest,false);
+ const status = await client.callTool({name:'taskboard_read',arguments:{}});
+ assert.equal(status.structuredContent.creation.requestId,creation.requestId);
+ const backend = await sharedFixture(t);
+ const connection = backend.client().connection;
+ const path = join(directory,'connection.json');
+ const text = JSON.stringify(connection);
+ await writeFile(path,text);
+ const connected = await client.callTool({name:'taskboard_read',arguments:{}});
+ assert.notEqual(connected.isError,true);
+ assert.equal(connected.structuredContent.state.version,3);
+ const launch = await client.callTool({name:'taskboard_open',arguments:{}});
+ assert.deepEqual(launch.structuredContent,{connectionRequired:false});
 });
 
 test('cancelling the native connection picker leaves the first-launch view usable',async t => {

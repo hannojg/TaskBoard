@@ -1,5 +1,6 @@
 import { fetchIssue,searchIssues,addImportedIssue,updateImportedIssue } from './github.mjs';
 import { connectFromFile,connectionFileForm } from './connection.mjs';
+import { beginCreation,readCreation,updateCreation,creationPrompt } from '../../scripts/creation.mjs';
 import { chatCatalogSchema } from './chats.mjs';
 import { resolveProject } from './project-details.mjs';
 import { readFile } from 'node:fs/promises';
@@ -20,7 +21,7 @@ const iconFile = new URL('../assets/icon.svg',import.meta.url);
 const icon = await readFile(iconFile);
 const encodedIcon = icon.toString('base64');
 const icons = [{src:'data:image/svg+xml;base64,'+encodedIcon,mimeType:'image/svg+xml',sizes:['any']}];
-const server = new McpServer({name:'taskboard',version:'0.7.2',icons});
+const server = new McpServer({name:'taskboard',version:'0.8.0',icons});
 // The SDK omits tool icons from tools/list; expose them at the protocol boundary.
 const registerHandler = server.server.setRequestHandler.bind(server.server);
 server.server.setRequestHandler = (schema,handler) => {
@@ -32,8 +33,8 @@ server.server.setRequestHandler = (schema,handler) => {
  });
 };
 const openaiExtensions = new OpenAIExtensions(server);
-const uri = 'ui://taskboard/0.7.2/board.html';
-const panelUri = 'ui://taskboard/0.7.2/panel.html';
+const uri = 'ui://taskboard/0.8.0/board.html';
+const panelUri = 'ui://taskboard/0.8.0/panel.html';
 function registerBoardResource(name,resourceUri,preferredDisplayMode) {
  registerAppResource(server,name,resourceUri,{},async () => {
   const file = new URL('./app.html',import.meta.url);
@@ -50,19 +51,49 @@ function handle(callback) { return async (args,extra) => { try { const data = aw
 function register(name,description,inputSchema,annotations,callback,extra = {},title) {
  registerAppTool(server,name,{title,icons,description,inputSchema,annotations,_meta:{ui:{resourceUri:uri,visibility:['app','model']},...extra}},handle(callback));
 }
-function launchState() { return {connectionRequired:store.configured === false}; }
-function readBoard() { return store.configured ? store.read() : launchState(); }
+async function launchState() {
+ store = await loadStore(dataDirectory);
+ const state = {connectionRequired:store.configured === false};
+ if (state.connectionRequired) {
+  const creation = await readCreation(dataDirectory);
+  if (creation) state.creation = creation;
+ }
+ return state;
+}
+async function readBoard() {
+ const state = await launchState();
+ return state.connectionRequired ? state : store.read();
+}
 register('taskboard_open','Open TaskBoard fullscreen from the Codex sidebar.',{},readOnly,launchState,{'openai/ui':{entrypoints:[{type:'global'}]}},'TaskBoard');
 register('taskboard_open_panel','Open TaskBoard alongside a Codex chat.',{},readOnly,launchState,{ui:{resourceUri:panelUri,visibility:['app','model']},'openai/ui':{entrypoints:[{type:'thread'}]}},'TaskBoard');
 register('taskboard_read','Read current tasks, project links, revision, and the last agent-refreshed Codex project catalog.',{},readOnly,readBoard);
 register('taskboard_connect','Choose and import a private connection file on this Mac.',{},write,async (args,extra) => {
  const form = connectionFileForm();
  const selected = await openaiExtensions.elicitInput(form,{timeout:300000,relatedRequestId:extra.requestId});
- if (selected.action !== 'accept') return {...launchState(),connectionCancelled:true};
+ if (selected.action !== 'accept') {
+  const state = await launchState();
+  return {...state,connectionCancelled:true};
+ }
  const connected = await connectFromFile(dataDirectory,selected.content.connectionFile);
  store = connected.store;
  return connected.data;
 },{ui:{resourceUri:uri,visibility:['app']}});
+register('taskboard_begin_creation','Start or resume a private board setup request on this Mac.',{},write,async () => {
+ const started = await beginCreation(dataDirectory);
+ const prompt = creationPrompt(started.creation.requestId);
+ return {connectionRequired:true,...started,prompt};
+},{ui:{resourceUri:uri,visibility:['app']}});
+register('taskboard_creation_status','Read the saved Site provisioning request before creating or resuming a board.',{requestId:z.string().uuid()},readOnly,async args => {
+ const creation = await readCreation(dataDirectory);
+ if (creation === null || creation.requestId !== args.requestId) throw new Error('This board setup request is no longer active.');
+ const state = await launchState();
+ return {...state,creation};
+});
+register('taskboard_update_creation','Record board setup progress and its confirmed Site ID. Never accepts credentials.',{requestId:z.string().uuid(),status:z.enum(['requested','provisioning','publishing','failed']),projectId:z.string().min(1).optional()},write,async args => {
+ const creation = await updateCreation(dataDirectory,args.requestId,args.status,args.projectId);
+ const state = await launchState();
+ return {...state,creation};
+});
 register('taskboard_save','Save board edits from the interactive panel with revision conflict detection.',{state:boardSchema,revision:z.number().int().nonnegative()},write,args => store.save(args.state,args.revision));
 register('taskboard_github_search','Read GitHub issues using the local signed-in GitHub CLI. Search one repository or fetch an issue URL; never writes to GitHub.',{repository:z.string(),query:z.string().max(500)},readOnly,async args => {
  const issueResults = args.query.trim().startsWith('https://') ? [await fetchIssue(args.query.trim())] : await searchIssues(args.repository,args.query);

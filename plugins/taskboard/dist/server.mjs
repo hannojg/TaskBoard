@@ -27957,6 +27957,85 @@ function connectionFileForm() {
   };
 }
 
+// scripts/creation.mjs
+import { readFile as readFile3, writeFile as writeFile2, mkdir as mkdir2, rename as rename2, access, link, unlink } from "node:fs/promises";
+import { join as join3 } from "node:path";
+import { randomUUID as randomUUID3 } from "node:crypto";
+async function readCreation(directory) {
+  const path = join3(directory, "creation.json");
+  try {
+    const text = await readFile3(path, "utf8");
+    return JSON.parse(text);
+  } catch (error62) {
+    if (error62.code === "ENOENT") return null;
+    throw error62;
+  }
+}
+async function requireUnconnected(directory) {
+  const path = join3(directory, "connection.json");
+  try {
+    await access(path);
+  } catch (error62) {
+    if (error62.code === "ENOENT") return;
+    throw error62;
+  }
+  throw new Error("This Mac is already connected to a board.");
+}
+async function writeCreation(directory, creation) {
+  const now = /* @__PURE__ */ new Date();
+  const saved = { ...creation, updatedAt: now.toISOString() };
+  const path = join3(directory, "creation.json");
+  const temporary = path + "." + randomUUID3();
+  const text = JSON.stringify(saved, null, 2);
+  await writeFile2(temporary, text + "\n", { mode: 384 });
+  await rename2(temporary, path);
+  return saved;
+}
+async function beginCreation(directory) {
+  await requireUnconnected(directory);
+  const previous = await readCreation(directory);
+  if (previous && previous.status !== "complete") {
+    if (previous.status === "failed") {
+      const creation2 = await writeCreation(directory, { ...previous, status: "requested" });
+      return { creation: creation2, shouldRequest: true };
+    }
+    return { creation: previous, shouldRequest: false };
+  }
+  await mkdir2(directory, { recursive: true, mode: 448 });
+  const requestId = randomUUID3();
+  const sourceDirectory = join3(directory, "boards", requestId);
+  const now = /* @__PURE__ */ new Date();
+  const creation = { requestId, status: "requested", projectId: null, sourceDirectory, updatedAt: now.toISOString() };
+  const path = join3(directory, "creation.json");
+  const text = JSON.stringify(creation, null, 2);
+  if (previous) await writeCreation(directory, creation);
+  else {
+    const temporary = path + "." + requestId;
+    await writeFile2(temporary, text + "\n", { mode: 384 });
+    try {
+      await link(temporary, path);
+    } catch (error62) {
+      if (error62.code !== "EEXIST") throw error62;
+      const current = await readCreation(directory);
+      return { creation: current, shouldRequest: false };
+    } finally {
+      await unlink(temporary);
+    }
+  }
+  return { creation, shouldRequest: true };
+}
+async function updateCreation(directory, requestId, status, projectId) {
+  const current = await readCreation(directory);
+  if (current === null || current.requestId !== requestId) throw new Error("This board setup request is no longer active.");
+  if (current.status === "complete" && status !== "complete") throw new Error("This board setup is already complete.");
+  if (projectId && current.projectId && projectId !== current.projectId) throw new Error("Resume the existing Site instead of replacing its project ID.");
+  const creation = { ...current, status, projectId: projectId || current.projectId };
+  return writeCreation(directory, creation);
+}
+function creationPrompt(requestId) {
+  return "Use the TaskBoard skill to create a new private shared board for setup request " + requestId + ". Read the saved provisioning state and resume it if setup already started. Use the bundled Site template and the Sites skill. Once the private Site is published, connect this Mac with the bundled complete-creation script through hidden stdin. Keep all credentials out of chat, source files and shell command arguments. Do not create another Site for the same request.";
+}
+
 // src/server/project-details.mjs
 import { execFile as execFile2 } from "node:child_process";
 import { promisify as promisify2 } from "node:util";
@@ -27995,9 +28074,9 @@ async function resolveProject(catalog, projectId, hostId) {
 }
 
 // src/server/index.mjs
-import { readFile as readFile3 } from "node:fs/promises";
+import { readFile as readFile4 } from "node:fs/promises";
 import { homedir as homedir2 } from "node:os";
-import { join as join3 } from "node:path";
+import { join as join4 } from "node:path";
 
 // node_modules/zod/v3/helpers/util.js
 var util;
@@ -39309,13 +39388,13 @@ var OpenAIExtensions = class {
 
 // src/server/index.mjs
 var home = homedir2();
-var dataDirectory = process.env.TASKBOARD_DATA_DIR || join3(home, "Library", "Application Support", "TaskBoard");
+var dataDirectory = process.env.TASKBOARD_DATA_DIR || join4(home, "Library", "Application Support", "TaskBoard");
 var store = await loadStore(dataDirectory);
 var iconFile = new URL("../assets/icon.svg", import.meta.url);
-var icon = await readFile3(iconFile);
+var icon = await readFile4(iconFile);
 var encodedIcon = icon.toString("base64");
 var icons = [{ src: "data:image/svg+xml;base64," + encodedIcon, mimeType: "image/svg+xml", sizes: ["any"] }];
-var server = new McpServer({ name: "taskboard", version: "0.7.2", icons });
+var server = new McpServer({ name: "taskboard", version: "0.8.0", icons });
 var registerHandler = server.server.setRequestHandler.bind(server.server);
 server.server.setRequestHandler = (schema, handler) => {
   if (schema !== ListToolsRequestSchema) return registerHandler(schema, handler);
@@ -39326,12 +39405,12 @@ server.server.setRequestHandler = (schema, handler) => {
   });
 };
 var openaiExtensions = new OpenAIExtensions(server);
-var uri2 = "ui://taskboard/0.7.2/board.html";
-var panelUri = "ui://taskboard/0.7.2/panel.html";
+var uri2 = "ui://taskboard/0.8.0/board.html";
+var panelUri = "ui://taskboard/0.8.0/panel.html";
 function registerBoardResource(name, resourceUri, preferredDisplayMode) {
   N3(server, name, resourceUri, {}, async () => {
     const file2 = new URL("./app.html", import.meta.url);
-    const html = await readFile3(file2, "utf8");
+    const html = await readFile4(file2, "utf8");
     return { contents: [{ uri: resourceUri, mimeType: p, text: html, _meta: { ui: { csp: { connectDomains: [], resourceDomains: [] } }, "openai/ui": { preferredDisplayMode, availableDisplayModes: ["inline", "fullscreen"] } } }] };
   });
 }
@@ -39355,11 +39434,18 @@ function handle(callback) {
 function register(name, description, inputSchema, annotations, callback, extra = {}, title) {
   K3(server, name, { title, icons, description, inputSchema, annotations, _meta: { ui: { resourceUri: uri2, visibility: ["app", "model"] }, ...extra } }, handle(callback));
 }
-function launchState() {
-  return { connectionRequired: store.configured === false };
+async function launchState() {
+  store = await loadStore(dataDirectory);
+  const state = { connectionRequired: store.configured === false };
+  if (state.connectionRequired) {
+    const creation = await readCreation(dataDirectory);
+    if (creation) state.creation = creation;
+  }
+  return state;
 }
-function readBoard() {
-  return store.configured ? store.read() : launchState();
+async function readBoard() {
+  const state = await launchState();
+  return state.connectionRequired ? state : store.read();
 }
 register("taskboard_open", "Open TaskBoard fullscreen from the Codex sidebar.", {}, readOnly, launchState, { "openai/ui": { entrypoints: [{ type: "global" }] } }, "TaskBoard");
 register("taskboard_open_panel", "Open TaskBoard alongside a Codex chat.", {}, readOnly, launchState, { ui: { resourceUri: panelUri, visibility: ["app", "model"] }, "openai/ui": { entrypoints: [{ type: "thread" }] } }, "TaskBoard");
@@ -39367,11 +39453,30 @@ register("taskboard_read", "Read current tasks, project links, revision, and the
 register("taskboard_connect", "Choose and import a private connection file on this Mac.", {}, write, async (args, extra) => {
   const form = connectionFileForm();
   const selected = await openaiExtensions.elicitInput(form, { timeout: 3e5, relatedRequestId: extra.requestId });
-  if (selected.action !== "accept") return { ...launchState(), connectionCancelled: true };
+  if (selected.action !== "accept") {
+    const state = await launchState();
+    return { ...state, connectionCancelled: true };
+  }
   const connected = await connectFromFile(dataDirectory, selected.content.connectionFile);
   store = connected.store;
   return connected.data;
 }, { ui: { resourceUri: uri2, visibility: ["app"] } });
+register("taskboard_begin_creation", "Start or resume a private board setup request on this Mac.", {}, write, async () => {
+  const started = await beginCreation(dataDirectory);
+  const prompt = creationPrompt(started.creation.requestId);
+  return { connectionRequired: true, ...started, prompt };
+}, { ui: { resourceUri: uri2, visibility: ["app"] } });
+register("taskboard_creation_status", "Read the saved Site provisioning request before creating or resuming a board.", { requestId: external_exports.string().uuid() }, readOnly, async (args) => {
+  const creation = await readCreation(dataDirectory);
+  if (creation === null || creation.requestId !== args.requestId) throw new Error("This board setup request is no longer active.");
+  const state = await launchState();
+  return { ...state, creation };
+});
+register("taskboard_update_creation", "Record board setup progress and its confirmed Site ID. Never accepts credentials.", { requestId: external_exports.string().uuid(), status: external_exports.enum(["requested", "provisioning", "publishing", "failed"]), projectId: external_exports.string().min(1).optional() }, write, async (args) => {
+  const creation = await updateCreation(dataDirectory, args.requestId, args.status, args.projectId);
+  const state = await launchState();
+  return { ...state, creation };
+});
 register("taskboard_save", "Save board edits from the interactive panel with revision conflict detection.", { state: boardSchema, revision: external_exports.number().int().nonnegative() }, write, (args) => store.save(args.state, args.revision));
 register("taskboard_github_search", "Read GitHub issues using the local signed-in GitHub CLI. Search one repository or fetch an issue URL; never writes to GitHub.", { repository: external_exports.string(), query: external_exports.string().max(500) }, readOnly, async (args) => {
   const issueResults = args.query.trim().startsWith("https://") ? [await fetchIssue(args.query.trim())] : await searchIssues(args.repository, args.query);

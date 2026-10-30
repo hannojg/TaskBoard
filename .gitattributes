@@ -1,2 +1,4 @@
 plugins/taskboard/dist/** linguist-generated=true -whitespace
 site/lib/board-api.mjs linguist-generated=true -whitespace
+plugins/taskboard/site/lib/board-api.mjs linguist-generated=true -whitespace
+plugins/taskboard/scripts/complete-creation.mjs linguist-generated=true -whitespace

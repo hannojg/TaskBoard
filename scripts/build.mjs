@@ -12,3 +12,4 @@ await build({entryPoints:['src/server/index.mjs'],outfile:'dist/server.mjs',bund
 console.log('Built TaskBoard plugin.');
 
 await build({entryPoints:['src/cloud/board-api.mjs'],outfile:'site/lib/board-api.mjs',bundle:true,format:'esm',platform:'browser',target:'es2022'});
+await build({entryPoints:['scripts/complete-creation.mjs'],outfile:'dist/complete-creation.mjs',bundle:true,format:'esm',platform:'node',target:'node22'});

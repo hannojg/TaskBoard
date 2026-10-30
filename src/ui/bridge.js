@@ -3,7 +3,7 @@ import { OpenAIExtensions } from '@openai/mcp-extensions/app';
 import { startBoard } from './board.js';
 import './markdown.js';
 import './style.css';
-const app = new App({name:'taskboard',version:'0.7.2'});
+const app = new App({name:'taskboard',version:'0.8.0'});
 new OpenAIExtensions(app);
 let accept;
 const workspace = document.getElementById('workspace');
@@ -13,6 +13,30 @@ const message = document.getElementById('connection-message');
 const retry = document.getElementById('retry-connection');
 const choose = document.getElementById('choose-connection-file');
 const setupError = document.getElementById('setup-error');
+const create = document.getElementById('create-board');
+const choices = document.getElementById('setup-choices');
+const creationProgress = document.getElementById('creation-progress');
+const creationMessage = document.getElementById('creation-message');
+const continueCreation = document.getElementById('continue-creation');
+let creationTimer;
+let creating = false;
+
+function showCreation(creation) {
+ clearTimeout(creationTimer);
+ const pending = creation && ['requested','provisioning','publishing'].includes(creation.status);
+ choices.hidden = Boolean(pending);
+ creationProgress.hidden = Boolean(pending) === false;
+ create.textContent = creation && creation.status === 'failed' ? 'Retry creating board' : 'Create a new board';
+ if (pending) {
+  const labels = {requested:'Getting your board ready…',provisioning:'Setting up your private board…',publishing:'Finishing your board…'};
+  creationMessage.textContent = labels[creation.status];
+  creationTimer = setTimeout(loadBoard,2000);
+ }
+ if (creation && creation.status === 'failed') {
+  setupError.textContent = 'Setup needs attention. Check the Codex chat, then retry to resume your board setup.';
+  setupError.hidden = false;
+ }
+}
 
 function unpack(result) {
  if (result.isError) {
@@ -50,9 +74,11 @@ function receive(data) {
   workspace.hidden = true;
   setup.hidden = false;
   status.hidden = true;
+  showCreation(data.creation);
   return;
  }
  if (data.state === undefined) return;
+ clearTimeout(creationTimer);
  if (accept) accept(data);
  else accept = startBoard(data,api);
  setup.hidden = true;
@@ -92,9 +118,38 @@ choose.onclick = async () => {
   setupError.hidden = false;
  } finally {
   choose.disabled = false;
-  choose.textContent = 'Choose connection file';
+  choose.textContent = 'Connect to an existing board';
  }
 };
+async function requestCreation(resume = false) {
+ if (creating) return;
+ creating = true;
+ create.disabled = true;
+ continueCreation.disabled = true;
+ setupError.hidden = true;
+ let requestId;
+ try {
+  const result = await app.callServerTool({name:'taskboard_begin_creation',arguments:{}});
+  const data = unpack(result);
+  requestId = data.creation.requestId;
+  receive(data);
+  if (data.shouldRequest || resume) await api.message(data.prompt);
+ } catch(error) {
+  if (requestId) {
+   const failed = await app.callServerTool({name:'taskboard_update_creation',arguments:{requestId,status:'failed'}});
+   const data = unpack(failed);
+   receive(data);
+  }
+  setupError.textContent = error.message;
+  setupError.hidden = false;
+ } finally {
+  creating = false;
+  create.disabled = false;
+  continueCreation.disabled = false;
+ }
+}
+create.onclick = () => requestCreation();
+continueCreation.onclick = () => requestCreation(true);
 async function connect() {
  try {
   await app.connect();
