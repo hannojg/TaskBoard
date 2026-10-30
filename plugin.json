@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "taskboard",
-  "version": "0.10.3",
+  "version": "0.10.4",
   "description": "A shared project and task board linked to Codex projects and chats.",
   "author": {
     "name": "Hanno"

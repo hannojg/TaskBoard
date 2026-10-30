@@ -4,6 +4,7 @@ import { chatUrl,taskChatUrl } from '../task-chat.js';
 import { descriptionImagesReady } from './markdown.js';
 import { descriptionText } from '../description.js';
 import { startAutoRefresh } from './auto-refresh.js';
+import { createBoardSync } from './board-sync.js';
 import { markdownCheckpoints,setCheckpoint } from '../checkpoints.js';
 import { parseReferenceUrl } from '../references.js';
 import { asanaConnectionPrompt,asanaLinkPrompt,asanaRefreshPrompt,asanaSchedulePrompt } from '../asana.js';
@@ -22,8 +23,6 @@ let asanaSupported = initialData.features?.includes('asana') === true;
 let selectedChats = [];
 let selectedReferences = [];
 let referenceType = null;
-let saving = false;
-let failed = false;
 let selectedProject = null;
 let view = 'projects';
 let editingTask = null;
@@ -42,32 +41,29 @@ let openingChat = false;
 let savingTask = false;
 function element(tag,className,text) { const node = document.createElement(tag); node.className = className; if (text) node.textContent = text; return node; }
 function notify(message) { $('toast').textContent = message; $('toast').style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').style.display = 'none'; },2600); }
-async function persist() {
- if (saving || failed) return false;
- saving = true;
- document.body.classList.add('saving');
- $('save-status').textContent = 'Saving…';
- try {
-  const result = await api.save(state,revision);
-  state = result.state; revision = result.revision; catalog = result.catalog;
-  $('save-status').textContent = 'All changes saved';
-  render();
-  return true;
- } catch (error) {
-  failed = true;
-  document.body.classList.add('save-error');
+const sync = createBoardSync(initialData,api,(data,status) => {
+ state = data.state;
+ revision = data.revision;
+ catalog = data.catalog;
+ if (projectFor(selectedProject) === undefined) selectedProject = null;
+ $('retry-save').hidden = status.error === null;
+ const indicator = $('save-indicator');
+ indicator.dataset.state = status.error ? 'error' : status.dirty ? 'saving' : 'saved';
+ if (status.error) {
   $('sync-status').hidden = true;
-  $('save-status').textContent = error.message+' Use Refresh board to load the latest saved version.';
-  notify(error.message);
-  return false;
- } finally { saving = false; document.body.classList.remove('saving'); }
-}
+  $('save-status').textContent = status.error.message+' Your changes are kept here. Retry saving, or refresh to discard them.';
+ } else $('save-status').textContent = status.dirty ? 'Saving…' : 'All changes saved';
+ if (status.changed && dragged === null && draggedColumn === null && draggedProject === null) render();
+});
+function persist() { return sync.save(state); }
+$('retry-save').onclick = () => sync.retry();
 function projectFor(id) { return state.projects.find(project => project.id === id); }
 function statusFor(id) { return statuses.find(status => status.id === id); }
 function selectProject(id) { selectedProject = id; render(); }
 function clearProjectDrag() {
  draggedProject = null;
  for (const node of $('projects').children) node.classList.remove('project-dragging','project-drop-before','project-drop-after');
+ render();
 }
 function projectDropAfter(event,button) {
  const bounds = button.getBoundingClientRect();
@@ -87,7 +83,6 @@ function projectButton(item) {
  button.append(label,grip);
  button.onclick = () => selectProject(item.id);
  button.ondragstart = event => {
-  if (saving || failed) { event.preventDefault(); return; }
   draggedProject = item.id;
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain',item.id);
@@ -183,6 +178,7 @@ function render() {
   grip.ondragend = () => {
    draggedColumn = null;
    for (const node of board.children) node.classList.remove('column-dragging','column-drop-before','column-drop-after');
+   render();
   };
   grip.onkeydown = event => {
    if (event.altKey === false || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
@@ -227,7 +223,7 @@ function render() {
  }
 }
 function reorderColumn(id,targetId,groupByProject,after) {
- if (saving || failed || id === targetId) return false;
+ if (id === targetId) return false;
  if (groupByProject) state.projects = reorderColumns(state.projects,id,targetId,after);
  else {
   const ordered = state.statusOrder.map(statusId => statusFor(statusId));
@@ -361,7 +357,7 @@ function taskCheckpoints(task,checkpoints) {
   checkbox.disabled = Boolean(task.asana);
   const text = element('span','',checkpoint.text);
   checkbox.onchange = async () => {
-   if (saving || failed || task.asana) {
+   if (task.asana) {
     checkbox.checked = checkpoint.checked;
     return;
    }
@@ -456,7 +452,6 @@ function openTask(task,projectId,statusId) {
  if (state.projects.length === 0) { openProject(null); return; }
  editingTask = task ? task.id : null;
  $('task-create-chat').hidden = task === null;
- $('task-save-error').hidden = true;
  $('task-source-actions').hidden = task !== null;
  const sourceOwned = Boolean(task && task.asana);
  $('title').readOnly = sourceOwned;
@@ -496,16 +491,24 @@ async function saveTask(createChat) {
    if (added === false) return;
   }
   const description = sourceOwned ? existing.description : $('description').value.trim();
-  const task = {...existing,id:editingTask || crypto.randomUUID(),title,description,priority:$('priority').value,due:$('due').value,projectId:$('task-project').value,statusId:$('task-status').value,chats:selectedChats,references:selectedReferences};
+  const id = editingTask || crypto.randomUUID();
+  const priority = $('priority').value;
+  const due = $('due').value;
+  const projectId = $('task-project').value;
+  const statusId = $('task-status').value;
+  const task = {issue:null,asana:null,...existing,id,title,description,priority,due,projectId,statusId,chats:selectedChats,references:selectedReferences};
   const index = state.tasks.findIndex(item => item.id === editingTask); if (index >= 0) state.tasks[index] = task; else state.tasks.push(task);
-  const saved = await persist();
-  if (saved === false) {
-   $('task-save-error').textContent = $('save-status').textContent;
-   $('task-save-error').hidden = false;
-   return;
-  }
+  const saved = persist();
   $('editor').close();
-  if (createChat) await createTaskChat(task);
+  if (createChat) {
+   void saved.then(result => {
+    const current = state.tasks.find(item => item.id === task.id);
+    if (result && current) {
+     const savedTask = result.state.tasks.find(item => item.id === task.id);
+     return createTaskChat(savedTask);
+    }
+   });
+  }
   return task;
  } finally {
   savingTask = false;
@@ -756,8 +759,7 @@ function renderTaskIssue(task) {
   refresh.disabled = true;
   const taskId = task.id;
   try {
-   const data = await api.refreshIssue(taskId,revision);
-   state = data.state; revision = data.revision; render();
+   await sync.run(currentRevision => api.refreshIssue(taskId,currentRevision));
    if ($('editor').open && editingTask === taskId) { const updated = state.tasks.find(item => item.id === taskId); renderTaskIssue(updated); }
    notify('GitHub details refreshed. Local edits preserved.');
   } catch(error) { notify(error.message); } finally {refresh.disabled = false;}
@@ -809,10 +811,14 @@ function selectIssue(index) {
 }
 $('confirm-issue-import').onclick = async () => {
  if (selectedIssue === null || issueBusy) return;
+ const request = issueRequest;
  issueBusy = true; $('confirm-issue-import').disabled = true; $('search-issues').disabled = true;
  try {
-  const data = await api.importIssue(selectedIssue.url,$('issue-project').value,issueStatus,revision);
-  state = data.state; revision = data.revision; render();
+  const url = selectedIssue.url;
+  const projectId = $('issue-project').value;
+  const statusId = issueStatus;
+  const data = await sync.run(currentRevision => api.importIssue(url,projectId,statusId,currentRevision));
+  if (request !== issueRequest || $('issue-import').open === false) return;
   $('issue-import').close(); $('editor').close();
   const task = state.tasks.find(item => item.id === data.importedTaskId);
   openTask(task,task.projectId,task.statusId);
@@ -947,24 +953,18 @@ $('reload-chats').onclick = async () => {
  try { const data = await api.read(); chatCatalog = data.chatCatalog; chatsUpdatedAt = data.chatsUpdatedAt; renderChatPicker(); } catch(error) { $('chat-status').textContent = error.message; }
 };
 function boardBusy() {
- return saving || dragged !== null || draggedColumn !== null || draggedProject !== null || document.querySelector('dialog[open]') !== null;
+ return sync.saving || dragged !== null || draggedColumn !== null || draggedProject !== null || document.querySelector('dialog[open]') !== null;
 }
 function receive(data,manual = false) {
  asanaSupported = data.features?.includes('asana') === true;
  chatCatalog = data.chatCatalog; chatsUpdatedAt = data.chatsUpdatedAt;
  if ($('editor').open) renderChatPicker();
- if (boardBusy() || (failed && manual === false)) return false;
- if (manual === false && data.revision < revision) return false;
+ if (boardBusy() || (sync.dirty && manual === false)) return false;
+ if (data.revision < revision) return false;
  catalog = data.catalog;
  $('sync-status').hidden = true;
- if (manual) {
-  failed = false;
-  document.body.classList.remove('save-error');
-  $('save-status').textContent = 'All changes saved';
- } else if (data.revision === revision && data.importedTaskId === undefined) return true;
- state = data.state; revision = data.revision;
- if (projectFor(selectedProject) === undefined) selectedProject = null;
- render();
+ if (manual === false && data.revision === revision && data.importedTaskId === undefined) return true;
+ sync.receive(data,manual);
  if (data.importedTaskId) {
   const imported = state.tasks.find(task => task.id === data.importedTaskId);
   if (imported && imported.asana) openTask(imported,imported.projectId,imported.statusId);
@@ -972,19 +972,33 @@ function receive(data,manual = false) {
  return true;
 }
 async function refreshBoard(manual) {
- if (boardBusy() || (failed && manual === false)) return false;
+ if (boardBusy() || (sync.dirty && manual === false)) return false;
+ if (sync.dirty) {
+  const discard = await confirmDiscard();
+  if (discard === false) return false;
+ }
+ const version = sync.version;
  try {
   const result = await api.read();
-  if (boardBusy()) return false;
+  if (boardBusy() || version !== sync.version) return false;
   return receive(result,manual);
  } catch(error) {
   const status = $('sync-status');
-  status.textContent = failed ? 'Updates paused. Use Refresh board to retry.' : 'Updates unavailable. Retrying…';
+  status.textContent = sync.error ? 'Updates paused. Retry saving your changes.' : 'Updates unavailable. Retrying…';
   status.title = error.message;
   status.hidden = false;
   if (manual) notify(error.message);
   return false;
  }
+}
+function confirmDiscard() {
+ const dialog = $('discard-changes');
+ const confirmation = new Promise(resolve => {
+  dialog.addEventListener('close',() => { resolve(dialog.returnValue === 'discard'); },{once:true});
+ });
+ dialog.returnValue = 'cancel';
+ dialog.showModal();
+ return confirmation;
 }
 const updates = startAutoRefresh(refreshBoard);
 $('refresh-board').onclick = () => updates.refresh(true);

@@ -766,15 +766,6 @@ h1 {
 #connection-status[hidden] {
   display: none;
 }
-.saving .board,
-.saving dialog,
-.saving aside,
-.save-error .board,
-.save-error aside,
-.save-error .toolbar {
-  pointer-events: none;
-  opacity: .6;
-}
 #refresh-board {
   font-size: 11px;
   padding: 5px 8px;
@@ -837,10 +828,6 @@ aside {
   .search input {
     color: #cfdef0;
   }
-}
-.saving .toolbar {
-  pointer-events: none;
-  opacity: .6;
 }
 .markdown-field {
   margin-bottom: 18px;
@@ -1156,9 +1143,6 @@ aside > button,
   font-size: 11px;
   padding: 6px 9px;
 }
-.saving #refresh-board {
-  pointer-events: none;
-}
 @media (max-width: 600px) {
   .workspace {
     display: flex;
@@ -1459,20 +1443,6 @@ aside > button,
   }
   .create-agent-chat {
     color: #9dbded;
-  }
-}
-#task-save-error {
-  color: #b45343;
-  font-size: 12px;
-  line-height: 1.6;
-  margin-top: 16px;
-}
-#task-save-error[hidden] {
-  display: none;
-}
-@media (prefers-color-scheme: dark) {
-  #task-save-error {
-    color: #f5aa9d;
   }
 }
 .chat-icon {
@@ -2008,11 +1978,21 @@ aside > button,
     color: #f58c95;
   }
 }
+#retry-save {
+  font-size: 11px;
+  padding: 6px 9px;
+}
+.save-indicator[data-state=saving] .saved-dot {
+  background: #d5a344;
+}
+.save-indicator[data-state=error] .saved-dot {
+  background: #d77474;
+}
 </style></head><body>
 <div id="connection-status" role="status"><span id="connection-message">Connecting to Codex…</span><button id="retry-connection" hidden>Try again</button></div><header><a class="brand" href="./">tasks</a><span class="private">Personal workspace</span><span class="avatar">HG</span></header>
-<section id="connection-setup" hidden aria-labelledby="setup-title"><div class="setup-card"><span class="eyebrow">WELCOME TO TASKBOARD</span><h1 id="setup-title">Your projects, together.</h1><p>Create a private board for your projects, or connect to one from another Mac.</p><div id="setup-choices"><div class="setup-option"><button id="create-board" class="primary">Create a new board</button><p>Codex sets up private online storage using Sites.</p></div><div class="setup-option"><button id="choose-connection-file">Connect to an existing board</button><p>Choose the private connection file from your connected Mac.</p></div></div><div id="creation-progress" hidden><p id="creation-message" role="status"></p><p class="setup-note">Codex is setting up your board in this chat. Keep TaskBoard open; it will connect when setup finishes.</p><button id="continue-creation">Continue setup in chat</button></div><p id="setup-error" role="alert" hidden></p><p class="setup-note">Your connection stays private on this Mac. You can use a different Codex account.</p></div></section><div class="workspace" id="workspace" hidden><aside><button id="overview" class="nav-item">All projects</button><div class="sidebar-label">PROJECTS <button id="sidebar-add" class="icon" aria-label="New project">＋</button></div><nav id="projects"></nav><button id="sync-projects" class="nav-item">Sync Codex projects</button><button id="open-asana" class="nav-item">Asana…</button><div class="sidebar-meta"><button id="refresh-board" title="Load the latest saved changes from other open panels">Refresh board</button><span class="save-indicator" role="status"><span class="saved-dot"></span><span id="save-status">All changes saved</span></span><span id="sync-status" role="status" hidden></span></div></aside><main><div class="toolbar"><div><h1 id="view-title">All projects</h1><div id="project-links"></div></div><div class="tools"><label class="search">⌕ <input id="search" placeholder="Search tasks…" aria-label="Search tasks"></label><div class="board-actions"><button class="primary" id="new-task">＋ New task</button><button id="add-project">＋ New project</button></div></div></div><div class="viewbar"><div class="tabs"><button id="by-project">Projects</button><button id="by-status">Status</button></div><span id="total"></span><button id="edit-project" hidden>Edit project</button></div><div id="board" class="board"></div></main></div>
-<dialog id="editor"><form id="task-form"><div class="dialog-top"><span class="eyebrow">TASK</span><div class="task-editor-actions"><div id="task-source-actions" class="task-source-actions" role="group" aria-label="Link a source ticket"><button type="button" id="open-issue-import" class="source-link-button" aria-label="Import from GitHub" title="Import from GitHub"></button><button type="button" id="open-asana-import" class="source-link-button asana-link-button" aria-label="Link from Asana" title="Link from Asana"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="6.5" r="4"></circle><circle cx="6.5" cy="17" r="4"></circle><circle cx="17.5" cy="17" r="4"></circle></svg></button></div><button type="button" class="icon" id="close" aria-label="Close task">×</button></div></div><section id="task-asana" hidden></section><section id="task-issue" hidden></section><label>Task name<input id="title" required maxlength="200"></label><div class="markdown-field"><label id="description-label">Description</label><div id="description-editor"></div><textarea id="description" hidden aria-hidden="true" tabindex="-1"></textarea><p id="description-status" class="form-note" role="status"></p></div><div class="fields"><label>Project<select id="task-project"></select></label><label>Status<select id="task-status"></select></label></div><div class="fields"><label>Priority<select id="priority"><option>None</option><option>Low</option><option>Medium</option><option>High</option></select></label><label>Due date<input type="date" id="due"></label></div><section class="references" aria-labelledby="references-title"><div class="references-heading"><h2 id="references-title">References</h2><div class="reference-types" aria-label="Add a reference"><button type="button" id="reference-slack" class="reference-add" aria-label="Add Slack thread" title="Add Slack thread" aria-expanded="false" aria-controls="reference-composer"></button><button type="button" id="reference-link" class="reference-add" aria-label="Add web link" title="Add web link" aria-expanded="false" aria-controls="reference-composer"></button></div></div><div id="task-references" aria-live="polite"></div><div id="reference-composer" class="reference-composer" hidden><div class="reference-composer-heading"><span id="reference-composer-title"></span><button type="button" id="cancel-reference" class="icon" aria-label="Cancel adding reference">×</button></div><label>Link<input id="reference-url" type="url" placeholder="https://example.com"></label><label>Label (optional)<input id="reference-title" maxlength="200"></label><button type="button" id="add-reference">Add reference</button><p id="reference-error" role="alert" hidden></p></div></section><section class="chat-picker" aria-label="Linked chats"><div class="chat-heading"><span>Linked chats</span><button type="button" id="sync-chats">Sync chats</button><button type="button" id="reload-chats">Reload list</button></div><div id="selected-chats"></div><div id="task-create-chat" hidden><button type="button" id="create-agent-chat" class="create-agent-chat">＋ Create agent chat</button><p class="form-note chat-draft-note">Saves this ticket and opens a draft with its context. Send it when you’re ready; the agent will then link the chat to this ticket.</p></div><input id="chat-search" type="search" placeholder="Search chats…" aria-label="Search chats"><label class="chat-scope"><input type="checkbox" id="all-chats">Show chats from all projects</label><div id="chat-options"></div><p id="chat-status" class="form-note" role="status"></p></section><p id="task-save-error" role="alert" hidden></p><div class="dialog-actions"><button type="button" id="delete-task" class="danger">Delete task</button><button class="primary" type="submit">Save task</button></div></form></dialog>
-<dialog id="task-chats" aria-labelledby="task-chats-title"><div class="dialog-top"><span class="eyebrow">LINKED CHATS</span><button type="button" class="icon" id="close-task-chats" aria-label="Close linked chats">×</button></div><h2 id="task-chats-title"></h2><div id="task-chat-links"></div></dialog><dialog id="issue-import"><form id="issue-import-form"><div class="dialog-top"><span class="eyebrow">IMPORT FROM GITHUB</span><button type="button" id="close-issue-import" class="icon">×</button></div><label>Project<select id="issue-project"></select></label><label>Repository<input id="issue-repository" placeholder="owner/repo or GitHub repository URL"></label><label>Issue URL or search<input id="issue-query" placeholder="Paste an issue URL or enter search words"></label><button id="search-issues" type="submit">Search / Preview</button><p id="issue-message" role="status" class="form-note"></p><div id="issue-results"></div><section id="issue-preview" hidden></section><button type="button" class="primary" id="confirm-issue-import" disabled>Import task</button></form></dialog><dialog id="asana-manager" aria-labelledby="asana-heading"><div class="dialog-top"><span class="eyebrow">ASANA</span><button type="button" class="icon" id="close-asana" aria-label="Close Asana">×</button></div><h2 id="asana-heading">Link your Asana tickets</h2><p class="form-note">Asana owns the title and description. Keep your workflow, references and Codex chats here.</p><p class="form-note">Uses the official Asana plugin in Codex.</p><button type="button" id="connect-asana">Check Asana connection</button><p id="asana-support" class="form-note" role="status"></p><form id="asana-link-form"><label>Project<select id="asana-project"></select></label><label>Asana task link<input id="asana-url" type="url" required placeholder="https://app.asana.com/…"></label><button id="link-asana" type="submit" class="primary">Link ticket through Codex</button><p id="asana-error" role="alert" hidden></p></form><div class="asana-actions"><button type="button" id="refresh-asana">Refresh linked tickets</button><button type="button" id="schedule-asana">Set up hourly sync</button></div><p class="form-note">Refreshes run through Codex. Hourly sync runs on this Mac.</p></dialog><dialog id="project-editor"><form id="project-form"><div class="dialog-top"><span class="eyebrow">PROJECT</span><button type="button" class="icon" id="close-project">×</button></div><label>Name<input id="project-name" required maxlength="80" placeholder="Project name"></label><label>Git repository URL<input id="project-repo" type="url" placeholder="https://github.com/…"></label><label>Local project folder<input id="project-path" placeholder="/Users/…/Documents/Github/…"></label><label>Codex project<select id="codex-project"></select></label><input id="project-codex" type="hidden"><input id="project-host" type="hidden" value="local"><p id="project-repo-status" class="form-note" role="status"></p><p class="form-note">Use “Sync Codex projects” to refresh this picker through Codex. Linking a project does not change task statuses.</p><div class="dialog-actions"><button type="button" class="danger" id="delete-project">Delete empty project</button><button class="primary" id="save-project">Save project</button></div></form></dialog><div id="toast" role="status"></div><script>(() => {
+<section id="connection-setup" hidden aria-labelledby="setup-title"><div class="setup-card"><span class="eyebrow">WELCOME TO TASKBOARD</span><h1 id="setup-title">Your projects, together.</h1><p>Create a private board for your projects, or connect to one from another Mac.</p><div id="setup-choices"><div class="setup-option"><button id="create-board" class="primary">Create a new board</button><p>Codex sets up private online storage using Sites.</p></div><div class="setup-option"><button id="choose-connection-file">Connect to an existing board</button><p>Choose the private connection file from your connected Mac.</p></div></div><div id="creation-progress" hidden><p id="creation-message" role="status"></p><p class="setup-note">Codex is setting up your board in this chat. Keep TaskBoard open; it will connect when setup finishes.</p><button id="continue-creation">Continue setup in chat</button></div><p id="setup-error" role="alert" hidden></p><p class="setup-note">Your connection stays private on this Mac. You can use a different Codex account.</p></div></section><div class="workspace" id="workspace" hidden><aside><button id="overview" class="nav-item">All projects</button><div class="sidebar-label">PROJECTS <button id="sidebar-add" class="icon" aria-label="New project">＋</button></div><nav id="projects"></nav><button id="sync-projects" class="nav-item">Sync Codex projects</button><button id="open-asana" class="nav-item">Asana…</button><div class="sidebar-meta"><button id="refresh-board" title="Load the latest saved changes from other open panels">Refresh board</button><button id="retry-save" hidden>Retry saving</button><span id="save-indicator" class="save-indicator" role="status" data-state="saved"><span class="saved-dot"></span><span id="save-status">All changes saved</span></span><span id="sync-status" role="status" hidden></span></div></aside><main><div class="toolbar"><div><h1 id="view-title">All projects</h1><div id="project-links"></div></div><div class="tools"><label class="search">⌕ <input id="search" placeholder="Search tasks…" aria-label="Search tasks"></label><div class="board-actions"><button class="primary" id="new-task">＋ New task</button><button id="add-project">＋ New project</button></div></div></div><div class="viewbar"><div class="tabs"><button id="by-project">Projects</button><button id="by-status">Status</button></div><span id="total"></span><button id="edit-project" hidden>Edit project</button></div><div id="board" class="board"></div></main></div>
+<dialog id="editor"><form id="task-form"><div class="dialog-top"><span class="eyebrow">TASK</span><div class="task-editor-actions"><div id="task-source-actions" class="task-source-actions" role="group" aria-label="Link a source ticket"><button type="button" id="open-issue-import" class="source-link-button" aria-label="Import from GitHub" title="Import from GitHub"></button><button type="button" id="open-asana-import" class="source-link-button asana-link-button" aria-label="Link from Asana" title="Link from Asana"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="6.5" r="4"></circle><circle cx="6.5" cy="17" r="4"></circle><circle cx="17.5" cy="17" r="4"></circle></svg></button></div><button type="button" class="icon" id="close" aria-label="Close task">×</button></div></div><section id="task-asana" hidden></section><section id="task-issue" hidden></section><label>Task name<input id="title" required maxlength="200"></label><div class="markdown-field"><label id="description-label">Description</label><div id="description-editor"></div><textarea id="description" hidden aria-hidden="true" tabindex="-1"></textarea><p id="description-status" class="form-note" role="status"></p></div><div class="fields"><label>Project<select id="task-project"></select></label><label>Status<select id="task-status"></select></label></div><div class="fields"><label>Priority<select id="priority"><option>None</option><option>Low</option><option>Medium</option><option>High</option></select></label><label>Due date<input type="date" id="due"></label></div><section class="references" aria-labelledby="references-title"><div class="references-heading"><h2 id="references-title">References</h2><div class="reference-types" aria-label="Add a reference"><button type="button" id="reference-slack" class="reference-add" aria-label="Add Slack thread" title="Add Slack thread" aria-expanded="false" aria-controls="reference-composer"></button><button type="button" id="reference-link" class="reference-add" aria-label="Add web link" title="Add web link" aria-expanded="false" aria-controls="reference-composer"></button></div></div><div id="task-references" aria-live="polite"></div><div id="reference-composer" class="reference-composer" hidden><div class="reference-composer-heading"><span id="reference-composer-title"></span><button type="button" id="cancel-reference" class="icon" aria-label="Cancel adding reference">×</button></div><label>Link<input id="reference-url" type="url" placeholder="https://example.com"></label><label>Label (optional)<input id="reference-title" maxlength="200"></label><button type="button" id="add-reference">Add reference</button><p id="reference-error" role="alert" hidden></p></div></section><section class="chat-picker" aria-label="Linked chats"><div class="chat-heading"><span>Linked chats</span><button type="button" id="sync-chats">Sync chats</button><button type="button" id="reload-chats">Reload list</button></div><div id="selected-chats"></div><div id="task-create-chat" hidden><button type="button" id="create-agent-chat" class="create-agent-chat">＋ Create agent chat</button><p class="form-note chat-draft-note">Saves this ticket and opens a draft with its context. Send it when you’re ready; the agent will then link the chat to this ticket.</p></div><input id="chat-search" type="search" placeholder="Search chats…" aria-label="Search chats"><label class="chat-scope"><input type="checkbox" id="all-chats">Show chats from all projects</label><div id="chat-options"></div><p id="chat-status" class="form-note" role="status"></p></section><div class="dialog-actions"><button type="button" id="delete-task" class="danger">Delete task</button><button class="primary" type="submit">Save task</button></div></form></dialog>
+<dialog id="task-chats" aria-labelledby="task-chats-title"><div class="dialog-top"><span class="eyebrow">LINKED CHATS</span><button type="button" class="icon" id="close-task-chats" aria-label="Close linked chats">×</button></div><h2 id="task-chats-title"></h2><div id="task-chat-links"></div></dialog><dialog id="issue-import"><form id="issue-import-form"><div class="dialog-top"><span class="eyebrow">IMPORT FROM GITHUB</span><button type="button" id="close-issue-import" class="icon">×</button></div><label>Project<select id="issue-project"></select></label><label>Repository<input id="issue-repository" placeholder="owner/repo or GitHub repository URL"></label><label>Issue URL or search<input id="issue-query" placeholder="Paste an issue URL or enter search words"></label><button id="search-issues" type="submit">Search / Preview</button><p id="issue-message" role="status" class="form-note"></p><div id="issue-results"></div><section id="issue-preview" hidden></section><button type="button" class="primary" id="confirm-issue-import" disabled>Import task</button></form></dialog><dialog id="asana-manager" aria-labelledby="asana-heading"><div class="dialog-top"><span class="eyebrow">ASANA</span><button type="button" class="icon" id="close-asana" aria-label="Close Asana">×</button></div><h2 id="asana-heading">Link your Asana tickets</h2><p class="form-note">Asana owns the title and description. Keep your workflow, references and Codex chats here.</p><p class="form-note">Uses the official Asana plugin in Codex.</p><button type="button" id="connect-asana">Check Asana connection</button><p id="asana-support" class="form-note" role="status"></p><form id="asana-link-form"><label>Project<select id="asana-project"></select></label><label>Asana task link<input id="asana-url" type="url" required placeholder="https://app.asana.com/…"></label><button id="link-asana" type="submit" class="primary">Link ticket through Codex</button><p id="asana-error" role="alert" hidden></p></form><div class="asana-actions"><button type="button" id="refresh-asana">Refresh linked tickets</button><button type="button" id="schedule-asana">Set up hourly sync</button></div><p class="form-note">Refreshes run through Codex. Hourly sync runs on this Mac.</p></dialog><dialog id="project-editor"><form id="project-form"><div class="dialog-top"><span class="eyebrow">PROJECT</span><button type="button" class="icon" id="close-project">×</button></div><label>Name<input id="project-name" required maxlength="80" placeholder="Project name"></label><label>Git repository URL<input id="project-repo" type="url" placeholder="https://github.com/…"></label><label>Local project folder<input id="project-path" placeholder="/Users/…/Documents/Github/…"></label><label>Codex project<select id="codex-project"></select></label><input id="project-codex" type="hidden"><input id="project-host" type="hidden" value="local"><p id="project-repo-status" class="form-note" role="status"></p><p class="form-note">Use “Sync Codex projects” to refresh this picker through Codex. Linking a project does not change task statuses.</p><div class="dialog-actions"><button type="button" class="danger" id="delete-project">Delete empty project</button><button class="primary" id="save-project">Save project</button></div></form></dialog><dialog id="discard-changes" aria-labelledby="discard-title"><form method="dialog"><h2 id="discard-title">Discard unsaved changes?</h2><p class="form-note">This loads the latest saved board and removes your unsaved edits from this panel.</p><div class="dialog-actions"><button value="cancel" autofocus>Keep editing</button><button value="discard" class="danger">Discard and refresh</button></div></form></dialog><div id="toast" role="status"></div><script>(() => {
   var __defProp = Object.defineProperty;
   var __getOwnPropNames = Object.getOwnPropertyNames;
   var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
@@ -51611,6 +51591,187 @@ container holding the app. Specify either width or maxWidth, and either height o
     return { refresh: run, stop };
   }
 
+  // src/ui/board-sync.js
+  function equal(left, right) {
+    const leftJson = JSON.stringify(left);
+    const rightJson = JSON.stringify(right);
+    return leftJson === rightJson;
+  }
+  function listChanges(before, after) {
+    const changes = [];
+    for (const item of before) {
+      const exists = after.some((next) => next.id === item.id);
+      if (exists === false) changes.push({ id: item.id, remove: true });
+    }
+    for (const item of after) {
+      const previous = before.find((value) => value.id === item.id);
+      if (previous === void 0) {
+        changes.push({ id: item.id, create: item });
+        continue;
+      }
+      const fields = {};
+      for (const key of Object.keys(item)) {
+        if (equal(previous[key], item[key]) === false) fields[key] = item[key];
+      }
+      const keys = Object.keys(fields);
+      if (keys.length > 0) changes.push({ id: item.id, fields });
+    }
+    const beforeIds = before.map((item) => item.id);
+    const afterIds = after.map((item) => item.id);
+    return { changes, order: equal(beforeIds, afterIds) ? null : afterIds };
+  }
+  function boardChanges(before, after) {
+    const projects = listChanges(before.projects, after.projects);
+    const tasks = listChanges(before.tasks, after.tasks);
+    const statusOrder = equal(before.statusOrder, after.statusOrder) ? null : after.statusOrder;
+    return { projects, tasks, statusOrder };
+  }
+  function applyList(items, patch) {
+    let result = [...items];
+    for (const change of patch.changes) {
+      const index = result.findIndex((item) => item.id === change.id);
+      if (change.remove) {
+        if (index >= 0) result.splice(index, 1);
+      } else if (change.create) result.push(change.create);
+      else if (index >= 0) result[index] = { ...result[index], ...change.fields };
+    }
+    if (patch.order) {
+      const ordered = [];
+      for (const id2 of patch.order) {
+        const item = result.find((value) => value.id === id2);
+        if (item) ordered.push(item);
+      }
+      const remaining = result.filter((item) => patch.order.includes(item.id) === false);
+      result = [...ordered, ...remaining];
+    }
+    return result;
+  }
+  function applyChanges(state, patches) {
+    for (const patch of patches) {
+      const projects = applyList(state.projects, patch.projects);
+      const tasks = applyList(state.tasks, patch.tasks);
+      state = { ...state, projects, tasks, statusOrder: patch.statusOrder || state.statusOrder };
+    }
+    return state;
+  }
+  function createBoardSync(initialData, api2, onChange) {
+    let data2 = structuredClone(initialData);
+    let optimistic = structuredClone(data2.state);
+    let running = false;
+    let active = null;
+    let error62 = null;
+    let version2 = 0;
+    const queue = [];
+    function publish(changed) {
+      optimistic = data2.state;
+      for (const entry of queue) {
+        if (entry.patches) optimistic = applyChanges(optimistic, entry.patches);
+      }
+      const state = structuredClone(optimistic);
+      onChange({ ...data2, state }, { saving: running, dirty: queue.length > 0, error: error62, changed });
+    }
+    async function drain() {
+      if (running || error62 || queue.length === 0) return false;
+      running = true;
+      publish(false);
+      try {
+        while (queue.length > 0) {
+          active = queue[0];
+          try {
+            if (active.operation) data2 = await active.operation(data2.revision);
+            else {
+              const state = applyChanges(data2.state, active.patches);
+              data2 = await api2.save(state, data2.revision);
+            }
+          } catch (failure2) {
+            if (active.operation) {
+              queue.shift();
+              active.reject(failure2);
+              publish(true);
+              continue;
+            }
+            error62 = failure2;
+            for (let index = queue.length - 1; index >= 0; index -= 1) {
+              const entry = queue[index];
+              if (entry.operation) entry.reject(failure2);
+              else for (const resolve of entry.waiters) resolve(false);
+              entry.waiters = [];
+              if (entry.operation) queue.splice(index, 1);
+            }
+            return false;
+          }
+          queue.shift();
+          publish(true);
+          for (const resolve of active.waiters) resolve(data2);
+        }
+        return true;
+      } finally {
+        active = null;
+        running = false;
+        publish(false);
+      }
+    }
+    function save(state) {
+      const snapshot = structuredClone(state);
+      const patch = boardChanges(optimistic, snapshot);
+      const last2 = queue.at(-1);
+      let entry;
+      if (last2 && last2.patches && last2 !== active) entry = last2;
+      else {
+        entry = { patches: [], waiters: [] };
+        queue.push(entry);
+      }
+      entry.patches.push(patch);
+      version2 += 1;
+      publish(true);
+      if (error62) return Promise.resolve(false);
+      const completion = new Promise((resolve) => {
+        entry.waiters.push(resolve);
+      });
+      void drain();
+      return completion;
+    }
+    function run(operation) {
+      if (error62) return Promise.reject(error62);
+      const entry = { operation, waiters: [] };
+      queue.push(entry);
+      const completion = new Promise((resolve, reject) => {
+        entry.waiters.push(resolve);
+        entry.reject = reject;
+      });
+      void drain();
+      return completion;
+    }
+    return {
+      save,
+      run,
+      get saving() {
+        return running;
+      },
+      get dirty() {
+        return queue.length > 0;
+      },
+      get error() {
+        return error62;
+      },
+      get version() {
+        return version2;
+      },
+      retry() {
+        error62 = null;
+        return drain();
+      },
+      receive(next, discard = false) {
+        if (running || queue.length > 0 && discard === false) return false;
+        data2 = structuredClone(next);
+        queue.length = 0;
+        error62 = null;
+        publish(true);
+        return true;
+      }
+    };
+  }
+
   // src/checkpoints.js
   function markdownCheckpoints(description) {
     const tree = markdownLanguage.parser.parse(description);
@@ -51655,8 +51816,6 @@ container holding the app. Specify either width or maxWidth, and either height o
     let selectedChats = [];
     let selectedReferences = [];
     let referenceType = null;
-    let saving = false;
-    let failed = false;
     let selectedProject = null;
     let view = "projects";
     let editingTask = null;
@@ -51687,31 +51846,24 @@ container holding the app. Specify either width or maxWidth, and either height o
         $("toast").style.display = "none";
       }, 2600);
     }
-    async function persist() {
-      if (saving || failed) return false;
-      saving = true;
-      document.body.classList.add("saving");
-      $("save-status").textContent = "Saving\u2026";
-      try {
-        const result = await api2.save(state, revision);
-        state = result.state;
-        revision = result.revision;
-        catalog = result.catalog;
-        $("save-status").textContent = "All changes saved";
-        render();
-        return true;
-      } catch (error62) {
-        failed = true;
-        document.body.classList.add("save-error");
+    const sync = createBoardSync(initialData, api2, (data2, status2) => {
+      state = data2.state;
+      revision = data2.revision;
+      catalog = data2.catalog;
+      if (projectFor(selectedProject) === void 0) selectedProject = null;
+      $("retry-save").hidden = status2.error === null;
+      const indicator = $("save-indicator");
+      indicator.dataset.state = status2.error ? "error" : status2.dirty ? "saving" : "saved";
+      if (status2.error) {
         $("sync-status").hidden = true;
-        $("save-status").textContent = error62.message + " Use Refresh board to load the latest saved version.";
-        notify(error62.message);
-        return false;
-      } finally {
-        saving = false;
-        document.body.classList.remove("saving");
-      }
+        $("save-status").textContent = status2.error.message + " Your changes are kept here. Retry saving, or refresh to discard them.";
+      } else $("save-status").textContent = status2.dirty ? "Saving\u2026" : "All changes saved";
+      if (status2.changed && dragged === null && draggedColumn === null && draggedProject === null) render();
+    });
+    function persist() {
+      return sync.save(state);
     }
+    $("retry-save").onclick = () => sync.retry();
     function projectFor(id2) {
       return state.projects.find((project) => project.id === id2);
     }
@@ -51725,6 +51877,7 @@ container holding the app. Specify either width or maxWidth, and either height o
     function clearProjectDrag() {
       draggedProject = null;
       for (const node2 of $("projects").children) node2.classList.remove("project-dragging", "project-drop-before", "project-drop-after");
+      render();
     }
     function projectDropAfter(event, button) {
       const bounds = button.getBoundingClientRect();
@@ -51744,10 +51897,6 @@ container holding the app. Specify either width or maxWidth, and either height o
       button.append(label, grip);
       button.onclick = () => selectProject(item.id);
       button.ondragstart = (event) => {
-        if (saving || failed) {
-          event.preventDefault();
-          return;
-        }
         draggedProject = item.id;
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setData("text/plain", item.id);
@@ -51872,6 +52021,7 @@ container holding the app. Specify either width or maxWidth, and either height o
         grip.ondragend = () => {
           draggedColumn = null;
           for (const node2 of board.children) node2.classList.remove("column-dragging", "column-drop-before", "column-drop-after");
+          render();
         };
         grip.onkeydown = (event) => {
           if (event.altKey === false || event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
@@ -51932,7 +52082,7 @@ container holding the app. Specify either width or maxWidth, and either height o
       }
     }
     function reorderColumn(id2, targetId, groupByProject, after) {
-      if (saving || failed || id2 === targetId) return false;
+      if (id2 === targetId) return false;
       if (groupByProject) state.projects = reorderColumns(state.projects, id2, targetId, after);
       else {
         const ordered = state.statusOrder.map((statusId) => statusFor(statusId));
@@ -52124,7 +52274,7 @@ container holding the app. Specify either width or maxWidth, and either height o
         checkbox.disabled = Boolean(task.asana);
         const text = element("span", "", checkpoint.text);
         checkbox.onchange = async () => {
-          if (saving || failed || task.asana) {
+          if (task.asana) {
             checkbox.checked = checkpoint.checked;
             return;
           }
@@ -52250,7 +52400,6 @@ container holding the app. Specify either width or maxWidth, and either height o
       }
       editingTask = task ? task.id : null;
       $("task-create-chat").hidden = task === null;
-      $("task-save-error").hidden = true;
       $("task-source-actions").hidden = task !== null;
       const sourceOwned = Boolean(task && task.asana);
       $("title").readOnly = sourceOwned;
@@ -52296,18 +52445,26 @@ container holding the app. Specify either width or maxWidth, and either height o
           if (added === false) return;
         }
         const description = sourceOwned ? existing.description : $("description").value.trim();
-        const task = { ...existing, id: editingTask || crypto.randomUUID(), title, description, priority: $("priority").value, due: $("due").value, projectId: $("task-project").value, statusId: $("task-status").value, chats: selectedChats, references: selectedReferences };
+        const id2 = editingTask || crypto.randomUUID();
+        const priority = $("priority").value;
+        const due = $("due").value;
+        const projectId = $("task-project").value;
+        const statusId = $("task-status").value;
+        const task = { issue: null, asana: null, ...existing, id: id2, title, description, priority, due, projectId, statusId, chats: selectedChats, references: selectedReferences };
         const index = state.tasks.findIndex((item) => item.id === editingTask);
         if (index >= 0) state.tasks[index] = task;
         else state.tasks.push(task);
-        const saved = await persist();
-        if (saved === false) {
-          $("task-save-error").textContent = $("save-status").textContent;
-          $("task-save-error").hidden = false;
-          return;
-        }
+        const saved = persist();
         $("editor").close();
-        if (createChat) await createTaskChat(task);
+        if (createChat) {
+          void saved.then((result) => {
+            const current = state.tasks.find((item) => item.id === task.id);
+            if (result && current) {
+              const savedTask = result.state.tasks.find((item) => item.id === task.id);
+              return createTaskChat(savedTask);
+            }
+          });
+        }
         return task;
       } finally {
         savingTask = false;
@@ -52570,10 +52727,7 @@ container holding the app. Specify either width or maxWidth, and either height o
         refresh.disabled = true;
         const taskId = task.id;
         try {
-          const data2 = await api2.refreshIssue(taskId, revision);
-          state = data2.state;
-          revision = data2.revision;
-          render();
+          await sync.run((currentRevision) => api2.refreshIssue(taskId, currentRevision));
           if ($("editor").open && editingTask === taskId) {
             const updated = state.tasks.find((item) => item.id === taskId);
             renderTaskIssue(updated);
@@ -52659,14 +52813,16 @@ container holding the app. Specify either width or maxWidth, and either height o
     }
     $("confirm-issue-import").onclick = async () => {
       if (selectedIssue === null || issueBusy) return;
+      const request = issueRequest;
       issueBusy = true;
       $("confirm-issue-import").disabled = true;
       $("search-issues").disabled = true;
       try {
-        const data2 = await api2.importIssue(selectedIssue.url, $("issue-project").value, issueStatus, revision);
-        state = data2.state;
-        revision = data2.revision;
-        render();
+        const url2 = selectedIssue.url;
+        const projectId = $("issue-project").value;
+        const statusId = issueStatus;
+        const data2 = await sync.run((currentRevision) => api2.importIssue(url2, projectId, statusId, currentRevision));
+        if (request !== issueRequest || $("issue-import").open === false) return;
         $("issue-import").close();
         $("editor").close();
         const task = state.tasks.find((item) => item.id === data2.importedTaskId);
@@ -52868,26 +53024,19 @@ container holding the app. Specify either width or maxWidth, and either height o
       }
     };
     function boardBusy() {
-      return saving || dragged !== null || draggedColumn !== null || draggedProject !== null || document.querySelector("dialog[open]") !== null;
+      return sync.saving || dragged !== null || draggedColumn !== null || draggedProject !== null || document.querySelector("dialog[open]") !== null;
     }
     function receive2(data2, manual = false) {
       asanaSupported = data2.features?.includes("asana") === true;
       chatCatalog = data2.chatCatalog;
       chatsUpdatedAt = data2.chatsUpdatedAt;
       if ($("editor").open) renderChatPicker();
-      if (boardBusy() || failed && manual === false) return false;
-      if (manual === false && data2.revision < revision) return false;
+      if (boardBusy() || sync.dirty && manual === false) return false;
+      if (data2.revision < revision) return false;
       catalog = data2.catalog;
       $("sync-status").hidden = true;
-      if (manual) {
-        failed = false;
-        document.body.classList.remove("save-error");
-        $("save-status").textContent = "All changes saved";
-      } else if (data2.revision === revision && data2.importedTaskId === void 0) return true;
-      state = data2.state;
-      revision = data2.revision;
-      if (projectFor(selectedProject) === void 0) selectedProject = null;
-      render();
+      if (manual === false && data2.revision === revision && data2.importedTaskId === void 0) return true;
+      sync.receive(data2, manual);
       if (data2.importedTaskId) {
         const imported = state.tasks.find((task) => task.id === data2.importedTaskId);
         if (imported && imported.asana) openTask(imported, imported.projectId, imported.statusId);
@@ -52895,19 +53044,35 @@ container holding the app. Specify either width or maxWidth, and either height o
       return true;
     }
     async function refreshBoard(manual) {
-      if (boardBusy() || failed && manual === false) return false;
+      if (boardBusy() || sync.dirty && manual === false) return false;
+      if (sync.dirty) {
+        const discard = await confirmDiscard();
+        if (discard === false) return false;
+      }
+      const version2 = sync.version;
       try {
         const result = await api2.read();
-        if (boardBusy()) return false;
+        if (boardBusy() || version2 !== sync.version) return false;
         return receive2(result, manual);
       } catch (error62) {
         const status2 = $("sync-status");
-        status2.textContent = failed ? "Updates paused. Use Refresh board to retry." : "Updates unavailable. Retrying\u2026";
+        status2.textContent = sync.error ? "Updates paused. Retry saving your changes." : "Updates unavailable. Retrying\u2026";
         status2.title = error62.message;
         status2.hidden = false;
         if (manual) notify(error62.message);
         return false;
       }
+    }
+    function confirmDiscard() {
+      const dialog2 = $("discard-changes");
+      const confirmation = new Promise((resolve) => {
+        dialog2.addEventListener("close", () => {
+          resolve(dialog2.returnValue === "discard");
+        }, { once: true });
+      });
+      dialog2.returnValue = "cancel";
+      dialog2.showModal();
+      return confirmation;
     }
     const updates = startAutoRefresh(refreshBoard);
     $("refresh-board").onclick = () => updates.refresh(true);
@@ -52919,7 +53084,7 @@ container holding the app. Specify either width or maxWidth, and either height o
   }
 
   // src/ui/bridge.js
-  var app = new i({ name: "taskboard", version: "0.10.3" });
+  var app = new i({ name: "taskboard", version: "0.10.4" });
   new OpenAIExtensions(app);
   var accept;
   var workspace = document.getElementById("workspace");
