@@ -1,0 +1,44 @@
+import assert from 'node:assert/strict';
+import { mkdtempSync,rmSync,writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join,resolve } from 'node:path';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { sharedFixture } from '../tests/support/shared.mjs';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+const temp = tmpdir(); const directory = mkdtempSync(join(temp,'taskboard-mcp-'));
+const cleanups = [];
+const fixture = await sharedFixture({after:cleanup => cleanups.push(cleanup)});
+const testClient = fixture.client();
+const connectionPath = join(directory,'connection.json');
+const connectionText = JSON.stringify(testClient.connection);
+writeFileSync(connectionPath,connectionText);
+const server = resolve('dist/server.mjs');
+const transport = new StdioClientTransport({command:process.execPath,args:[server],env:{...process.env,TASKBOARD_DATA_DIR:directory},stderr:'pipe'});
+const client = new Client({name:'taskboard-smoke',version:'1.0.0'});
+function data(result) { assert.notEqual(result.isError,true); return result.structuredContent; }
+try {
+ await client.connect(transport);
+ const list = await client.listTools(); assert.ok(list.tools.some(tool => tool.name === 'taskboard_open'));
+ const sidebar = list.tools.find(tool => tool.name === 'taskboard_open');
+ assert.equal(sidebar.title,'TaskBoard');
+ assert.deepEqual(sidebar._meta['openai/ui'].entrypoints,[{type:'global'}]);
+ const panel = list.tools.find(tool => tool.name === 'taskboard_open_panel');
+ assert.equal(panel.title,'TaskBoard');
+ assert.deepEqual(panel._meta['openai/ui'].entrypoints,[{type:'thread'}]);
+ assert.notEqual(sidebar._meta.ui.resourceUri,panel._meta.ui.resourceUri);
+ const globalResource = await client.readResource({uri:sidebar._meta.ui.resourceUri});
+ assert.equal(globalResource.contents[0]._meta['openai/ui'].preferredDisplayMode,'fullscreen');
+ const panelResource = await client.readResource({uri:panel._meta.ui.resourceUri});
+ assert.equal(panelResource.contents[0]._meta['openai/ui'].preferredDisplayMode,'inline');
+ const opened = await client.callTool({name:'taskboard_open',arguments:{}}); let board = data(opened); assert.equal(board.revision,0);
+ const resource = await client.readResource({uri:'ui://taskboard/0.7.0/board.html'}); assert.match(resource.contents[0].text,/description-editor/);
+ const synced = await client.callTool({name:'taskboard_sync_projects',arguments:{projects:[{projectId:'verified-p',label:'Example',path:'/repo',hostId:'local',isGitRepository:true}]}}); board = data(synced); assert.equal(board.catalog.length,1);
+ const chatSync = await client.callTool({name:'taskboard_sync_chats',arguments:{chats:[{threadId:'confirmed-chat',hostId:'local',title:'Confirmed chat',projectId:'verified-p'}]}}); board = data(chatSync); assert.equal(board.chatCatalog.length,1);
+ const project = {id:'p',name:'Example',repo:'',path:'/repo',codexId:'verified-p',hostId:'local',chat:''};
+ const added = await client.callTool({name:'taskboard_upsert_project',arguments:{project,revision:board.revision}}); board = data(added);
+ const task = {id:'t',title:'Test ticket',description:'**bold**',priority:'None',due:'',projectId:'p',statusId:'backlog',chats:[{threadId:'confirmed-chat',hostId:'local',title:'Confirmed chat',url:''}]};
+ const created = await client.callTool({name:'taskboard_upsert_task',arguments:{task,revision:board.revision}}); board = data(created); assert.equal(board.state.tasks[0].chats[0].threadId,'confirmed-chat');
+ const stale = await client.callTool({name:'taskboard_save',arguments:{state:board.state,revision:0}}); assert.equal(stale.isError,true);
+ const current = await client.callTool({name:'taskboard_read',arguments:{}}); const saved = data(current); assert.equal(saved.state.tasks.length,1);
+ console.log('Named sidebar and chat entrypoints verified. MCP: resource, catalog sync, project creation, task linking, persistence and conflict checks passed.');
+} finally { await client.close(); for (const cleanup of cleanups) await cleanup(); rmSync(directory,{recursive:true}); }

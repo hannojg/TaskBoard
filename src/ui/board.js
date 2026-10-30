@@ -1,0 +1,535 @@
+import { reorderColumns } from '../column-order.js';
+import { chatKey } from '../chat-key.js';
+import { chatUrl,taskChatUrl } from '../task-chat.js';
+export function startBoard(initialData,api) {
+const $ = id => document.getElementById(id);
+
+const statuses = [{id:'backlog',name:'Backlog'},{id:'todo',name:'To do'},{id:'progress',name:'In progress'},{id:'review',name:'Waiting for review'},{id:'blocked',name:'Blocked'},{id:'done',name:'Done'}];
+let state = initialData.state;
+let revision = initialData.revision;
+let catalog = initialData.catalog;
+let chatCatalog = initialData.chatCatalog;
+let chatsUpdatedAt = initialData.chatsUpdatedAt;
+const deviceId = initialData.deviceId;
+let selectedChats = [];
+let saving = false;
+let failed = false;
+let selectedProject = null;
+let view = 'projects';
+let editingTask = null;
+let editingProject = null;
+let projectLookup = 0;
+let dragged = null;
+let draggedColumn = null;
+let toastTimer;
+let issueResults = [];
+let selectedIssue = null;
+let issueStatus = 'backlog';
+let issueRequest = 0;
+let issueBusy = false;
+let openingChat = false;
+function element(tag,className,text) { const node = document.createElement(tag); node.className = className; if (text) node.textContent = text; return node; }
+function notify(message) { $('toast').textContent = message; $('toast').style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').style.display = 'none'; },2600); }
+async function persist() {
+ if (saving || failed) return false;
+ saving = true;
+ document.body.classList.add('saving');
+ $('save-status').textContent = 'Saving…';
+ try {
+  const result = await api.save(state,revision);
+  state = result.state; revision = result.revision; catalog = result.catalog;
+  $('save-status').textContent = 'All changes saved';
+  render();
+  return true;
+ } catch (error) {
+  failed = true;
+  document.body.classList.add('save-error');
+  $('save-status').textContent = error.message+' Use Refresh board to load the latest saved version.';
+  notify(error.message);
+  return false;
+ } finally { saving = false; document.body.classList.remove('saving'); }
+}
+function projectFor(id) { return state.projects.find(project => project.id === id); }
+function statusFor(id) { return statuses.find(status => status.id === id); }
+function selectProject(id) { selectedProject = id; render(); }
+function linkNode(url,label) {
+ const node = element('a','project-link',label);
+ const parsed = new URL(url);
+ if (parsed.protocol === 'https:' || parsed.protocol === 'http:' || parsed.protocol === 'codex:') { node.href = url; node.target = '_blank'; node.rel = 'noopener noreferrer'; }
+ return node;
+}
+function render() {
+ const project = projectFor(selectedProject);
+ $('view-title').textContent = project ? project.name : 'All projects';
+ $('edit-project').hidden = project === undefined;
+ $('overview').classList.toggle('active',selectedProject === null);
+ $('by-project').hidden = Boolean(project);
+ $('by-status').textContent = project ? 'Board' : 'Status';
+ $('by-project').classList.toggle('active',view === 'projects');
+ $('by-status').classList.toggle('active',Boolean(project) || view === 'status');
+ $('project-links').replaceChildren();
+ if (project) {
+  if (project.repo) { const link = linkNode(project.repo,'Repository ↗'); $('project-links').append(link); }
+  if (project.path) { const path = element('span','local-path',project.path); $('project-links').append(path); }
+ }
+ $('projects').replaceChildren();
+ for (const item of state.projects) {
+  const button = element('button','nav-item',item.name); button.classList.toggle('active',item.id === selectedProject); button.onclick = () => selectProject(item.id); $('projects').append(button);
+ }
+ const board = $('board'); board.replaceChildren();
+ const query = $('search').value.toLowerCase();
+ const visible = state.tasks.filter(task => { const text = task.title+' '+task.description; const lower = text.toLowerCase(); return (selectedProject === null || task.projectId === selectedProject) && lower.includes(query); });
+ const taskLabel = visible.length === 1 ? ' task' : ' tasks';
+ $('total').textContent = visible.length+taskLabel;
+ if (state.projects.length === 0) {
+  const empty = element('div','board-empty','Create a project to start adding tasks.'); board.append(empty); return;
+ }
+ const groupByProject = selectedProject === null && view === 'projects';
+ const orderedStatuses = state.statusOrder.map(id => statusFor(id));
+ const groups = groupByProject ? state.projects : orderedStatuses;
+ for (const group of groups) {
+  const section = element('section','column'); section.setAttribute('aria-label',group.name);
+  const head = element('div','column-head');
+  const title = element('button','column-open',group.name); title.onclick = () => { if (groupByProject) selectProject(group.id); }; title.title = groupByProject ? 'Open project board' : group.name;
+  const tasks = visible.filter(task => groupByProject ? task.projectId === group.id : task.statusId === group.id);
+  const countText = String(tasks.length); const count = element('span','count',countText);
+  const grip = element('button','column-grip','⠿');
+  grip.type = 'button'; grip.draggable = true;
+  grip.setAttribute('aria-label','Reorder '+group.name);
+  grip.title = 'Drag to reorder. Alt + Left or Right also moves this column.';
+  grip.ondragstart = event => {
+   event.stopPropagation(); draggedColumn = {id:group.id,groupByProject};
+   event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain',group.id);
+   section.classList.add('column-dragging');
+  };
+  grip.ondragend = () => {
+   draggedColumn = null;
+   for (const node of board.children) node.classList.remove('column-dragging','column-drop-before','column-drop-after');
+  };
+  grip.onkeydown = event => {
+   if (event.altKey === false || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
+   event.preventDefault();
+   const index = groups.findIndex(item => item.id === group.id);
+   const next = event.key === 'ArrowRight' ? index+1 : index-1;
+   if (next < 0 || next >= groups.length) return;
+   reorderColumn(group.id,groups[next].id,groupByProject,event.key === 'ArrowRight');
+  };
+  head.append(grip,title,count);
+  if (groupByProject) {
+   const edit = element('button','icon','⋯'); edit.setAttribute('aria-label','Edit '+group.name); edit.onclick = () => openProject(group); head.append(edit);
+   section.ondblclick = event => { if (event.target.closest('.card, .add-task, .icon, .column-grip')) return; selectProject(group.id); };
+  }
+  const cards = element('div','cards');
+  for (const task of tasks) { const card = taskCard(task,group,groupByProject); cards.append(card); }
+  if (tasks.length === 0) { const empty = element('div','empty',query ? 'No matching tasks' : 'No tasks'); cards.append(empty); }
+  section.ondragover = event => {
+   if (draggedColumn === null && dragged === null) return;
+   event.preventDefault(); event.dataTransfer.dropEffect = 'move';
+   if (draggedColumn) {
+    const bounds = section.getBoundingClientRect();
+    const after = event.clientX > bounds.left+bounds.width/2;
+    section.classList.toggle('column-drop-before',after === false);
+    section.classList.toggle('column-drop-after',after);
+   } else section.classList.add('drop-target');
+  };
+  section.ondragleave = event => {
+   if (section.contains(event.relatedTarget) === false) section.classList.remove('drop-target','column-drop-before','column-drop-after');
+  };
+  section.ondrop = event => {
+   event.preventDefault();
+   if (draggedColumn) {
+    const bounds = section.getBoundingClientRect();
+    const after = event.clientX > bounds.left+bounds.width/2;
+    const moved = draggedColumn; draggedColumn = null;
+    reorderColumn(moved.id,group.id,groupByProject,after);
+   } else if (dragged) moveTask(dragged,group,groupByProject,null);
+  };
+  const add = element('button','add-task','＋ Add task'); add.onclick = () => openTask(null,groupByProject ? group.id : selectedProject,groupByProject ? 'backlog' : group.id);
+  section.append(head,add,cards); board.append(section);
+ }
+}
+function reorderColumn(id,targetId,groupByProject,after) {
+ if (id === targetId) return;
+ if (groupByProject) state.projects = reorderColumns(state.projects,id,targetId,after);
+ else {
+  const ordered = state.statusOrder.map(statusId => statusFor(statusId));
+  const moved = reorderColumns(ordered,id,targetId,after);
+  state.statusOrder = moved.map(status => status.id);
+ }
+ persist();
+}
+function moveTask(id,group,groupByProject,beforeId) {
+ const task = state.tasks.find(item => item.id === id);
+ if (groupByProject) task.projectId = group.id; else task.statusId = group.id;
+ state.tasks = state.tasks.filter(item => item.id !== id);
+ const position = state.tasks.findIndex(item => item.id === beforeId);
+ if (position >= 0) state.tasks.splice(position,0,task); else state.tasks.push(task);
+ persist();
+}
+function taskCard(task,group,groupByProject) {
+ const card = element('article','card'); card.draggable = true; card.tabIndex = 0; card.setAttribute('aria-label',task.title+'; edit task');
+ const header = element('div','card-header');
+ const heading = element('h2','',task.title);
+ const actions = element('div','card-chat-actions');
+ if (task.chats.length > 0) {
+  const open = chatAction('','Open linked chat',() => openTaskChats(task));
+  const icon = chatIcon();
+  open.append(icon);
+  actions.append(open);
+ }
+ const create = chatAction('＋','Create agent chat',() => createTaskChat(task));
+ const project = projectFor(task.projectId);
+ configureCreateChat(create,project);
+ header.append(heading,actions);
+ actions.append(create);
+ card.append(header);
+ if (task.issue) { const label = element('span','issue-badge','GitHub #'+task.issue.number); card.append(label); }
+ if (task.description) { const description = element('p','',task.description); card.append(description); }
+ const meta = element('div','meta');
+ const context = groupByProject ? statusFor(task.statusId) : projectFor(task.projectId);
+ const contextName = context ? context.name : '';
+ if (contextName) { const badge = element('span','priority',contextName); meta.append(badge); }
+ if (task.priority !== 'None') { const badge = element('span','priority '+task.priority,task.priority); meta.append(badge); }
+ if (task.chats.length > 0) {
+  const label = task.chats.length === 1 ? '1 chat' : task.chats.length+' chats';
+  const chats = chatAction(label,'Open linked chat',() => openTaskChats(task));
+  const icon = chatIcon();
+  chats.prepend(icon);
+  chats.className = 'priority chat-badge';
+  meta.append(chats);
+ }
+ if (task.due) { const date = new Date(task.due+'T12:00:00'); const formatted = date.toLocaleDateString(undefined,{month:'short',day:'numeric'}); const due = element('span','',formatted); meta.append(due); }
+ card.append(meta);
+ card.onclick = () => openTask(task,task.projectId,task.statusId);
+ card.onkeydown = event => { if (event.target === card && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); openTask(task,task.projectId,task.statusId); } };
+ card.ondblclick = event => event.stopPropagation();
+ card.ondragstart = event => { dragged = task.id; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain',task.id); card.classList.add('dragging'); };
+ card.ondragend = () => { dragged = null; render(); };
+ card.ondrop = event => { if (draggedColumn) return; event.preventDefault(); event.stopPropagation(); if (dragged && dragged !== task.id) moveTask(dragged,group,groupByProject,task.id); };
+ return card;
+}
+function chatIcon() {
+ const namespace = 'http://www.w3.org/2000/svg';
+ const icon = document.createElementNS(namespace,'svg');
+ icon.setAttribute('class','chat-icon');
+ icon.setAttribute('viewBox','0 0 24 24');
+ icon.setAttribute('fill','none');
+ icon.setAttribute('stroke','currentColor');
+ icon.setAttribute('stroke-width','1.75');
+ icon.setAttribute('stroke-linecap','round');
+ icon.setAttribute('stroke-linejoin','round');
+ icon.setAttribute('aria-hidden','true');
+ const outline = document.createElementNS(namespace,'path');
+ outline.setAttribute('d','M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z');
+ icon.append(outline);
+ return icon;
+}
+function chatAction(label,title,action) {
+ const button = element('button','card-chat-action',label);
+ button.type = 'button';
+ button.title = title;
+ button.setAttribute('aria-label',title);
+ button.onclick = event => { event.stopPropagation(); action(); };
+ button.ondragstart = event => { event.preventDefault(); event.stopPropagation(); };
+ return button;
+}
+function configureCreateChat(button,project) {
+ const local = project.hostId === 'local' && project.path.length > 0;
+ button.disabled = local === false;
+ button.title = local ? 'Open a new draft with this ticket’s context' : 'Draft chats can only be opened for local projects.';
+}
+async function openChat(chat) {
+ if (chat.threadId && chat.deviceId && chat.deviceId !== deviceId) { notify('Open this chat on '+chat.deviceName+'.'); return; }
+ try {
+  const url = chatUrl(chat);
+  await api.openLink(url);
+ } catch(error) { notify(error.message); }
+}
+function openTaskChats(task) {
+ if (task.chats.length === 1) { openChat(task.chats[0]); return; }
+ $('task-chats-title').textContent = task.title;
+ $('task-chat-links').replaceChildren();
+ for (const chat of task.chats) {
+  const button = element('button','task-chat-link',chat.title);
+  const icon = chatIcon();
+  button.prepend(icon);
+  button.type = 'button';
+  button.onclick = () => openChat(chat);
+  $('task-chat-links').append(button);
+ }
+ $('task-chats').showModal();
+}
+async function createTaskChat(task) {
+ if (openingChat) return;
+ openingChat = true;
+ try {
+  const project = projectFor(task.projectId);
+  const status = statusFor(task.statusId);
+  const url = taskChatUrl(task,project,status.name);
+  await api.openLink(url);
+ } catch(error) { notify(error.message); }
+ finally { openingChat = false; }
+}
+$('close-task-chats').onclick = () => $('task-chats').close();
+function fillOptions(id,items,value) { $(id).replaceChildren(); for (const item of items) { const option = element('option','',item.name); option.value = item.id; $(id).append(option); } $(id).value = value; }
+function openTask(task,projectId,statusId) {
+ if (state.projects.length === 0) { openProject(null); return; }
+ editingTask = task ? task.id : null;
+ $('task-save-error').hidden = true;
+ $('open-issue-import').hidden = task !== null;
+ $('description-label').textContent = task && task.issue ? 'Local notes' : 'Description';
+ renderTaskIssue(task);
+ $('title').value = task ? task.title : ''; $('description').value = task ? task.description : ''; $('priority').value = task ? task.priority : 'None'; $('due').value = task ? task.due : '';
+ selectedChats = task ? [...task.chats] : [];
+ $('chat-search').value = '';
+ $('all-chats').checked = false;
+ const targetProject = projectId || state.projects[0].id;
+ fillOptions('task-project',state.projects,targetProject); fillOptions('task-status',statuses,statusId || 'backlog');
+ renderChatPicker();
+ $('delete-task').hidden = task === null; $('editor').showModal(); $('title').focus();
+}
+async function saveTask(createChat) {
+ const title = $('title').value.trim(); if (title.length === 0) return;
+ const existing = state.tasks.find(item => item.id === editingTask);
+ const task = {...existing,id:editingTask || crypto.randomUUID(),title,description:$('description').value.trim(),priority:$('priority').value,due:$('due').value,projectId:$('task-project').value,statusId:$('task-status').value,chats:selectedChats};
+ const index = state.tasks.findIndex(item => item.id === editingTask); if (index >= 0) state.tasks[index] = task; else state.tasks.push(task);
+ const saved = await persist();
+ if (saved === false) {
+  $('task-save-error').textContent = $('save-status').textContent;
+  $('task-save-error').hidden = false;
+  return;
+ }
+ $('editor').close();
+ if (createChat) await createTaskChat(task);
+}
+$('task-form').onsubmit = event => {
+ event.preventDefault();
+ saveTask(false);
+};
+$('create-agent-chat').onclick = () => {
+ const valid = $('task-form').reportValidity();
+ if (valid) saveTask(true);
+};
+function issueSource(issue) {
+ const section = element('div','issue-source');
+ const heading = element('h3','',issue.title); const link = linkNode(issue.url,issue.repository+' #'+issue.number+' ↗');
+ const meta = element('p','form-note',issue.state+' · '+issue.labels.join(', '));
+ const body = element('pre','issue-body',issue.body || 'No description.');
+ section.append(heading,link,meta,body); return section;
+}
+function renderTaskIssue(task) {
+ const container = $('task-issue'); container.replaceChildren(); container.hidden = task === null || task.issue === null;
+ if (container.hidden) return;
+ const source = element('details',''); const summary = element('summary','','GitHub #'+task.issue.number+' · '+task.issue.state);
+ const details = issueSource(task.issue); source.append(summary,details);
+ const refresh = element('button','','Refresh from GitHub'); refresh.type = 'button';
+ refresh.onclick = async () => {
+  refresh.disabled = true;
+  const taskId = task.id;
+  try {
+   const data = await api.refreshIssue(taskId,revision);
+   state = data.state; revision = data.revision; render();
+   if ($('editor').open && editingTask === taskId) { const updated = state.tasks.find(item => item.id === taskId); renderTaskIssue(updated); }
+   notify('GitHub details refreshed. Local edits preserved.');
+  } catch(error) { notify(error.message); } finally {refresh.disabled = false;}
+ };
+ container.append(source,refresh);
+}
+function clearIssuePreview() {
+ issueRequest += 1; selectedIssue = null; issueResults = [];
+ $('issue-preview').hidden = true; $('issue-preview').replaceChildren(); $('issue-results').replaceChildren(); $('confirm-issue-import').disabled = true;
+}
+$('open-issue-import').onclick = () => {
+ clearIssuePreview(); issueBusy = false; $('search-issues').disabled = false;
+ fillOptions('issue-project',state.projects,$('task-project').value);
+ const project = projectFor($('issue-project').value);
+ $('issue-repository').value = project.repo;
+ $('issue-query').value = ''; $('issue-message').textContent = '';
+ issueStatus = $('task-status').value;
+ $('issue-import').showModal();
+};
+$('close-issue-import').onclick = () => { issueRequest += 1; $('issue-import').close(); };
+$('issue-project').onchange = () => { const project = projectFor($('issue-project').value); $('issue-repository').value = project.repo; clearIssuePreview(); };
+$('issue-query').oninput = clearIssuePreview;
+$('issue-repository').oninput = clearIssuePreview;
+$('issue-import-form').onsubmit = async event => {
+ event.preventDefault(); if (issueBusy) return;
+ clearIssuePreview(); const request = issueRequest; issueBusy = true; $('search-issues').disabled = true;
+ $('issue-message').textContent = 'Reading GitHub…';
+ try {
+  const data = await api.searchIssues($('issue-repository').value,$('issue-query').value);
+  if (request !== issueRequest || $('issue-import').open === false) return;
+  issueResults = data.issueResults;
+  $('issue-message').textContent = issueResults.length ? 'Choose an issue to preview.' : 'No matching issues.';
+  issueResults.forEach((issue,index) => {
+   const choice = element('button','issue-result','#'+issue.number+' '+issue.title); choice.type = 'button';
+   choice.onclick = () => selectIssue(index);
+   $('issue-results').append(choice);
+  });
+  if (issueResults.length === 1) selectIssue(0);
+ } catch(error) { if (request === issueRequest) $('issue-message').textContent = error.message; }
+ finally { issueBusy = false; $('search-issues').disabled = false; }
+};
+function selectIssue(index) {
+ selectedIssue = issueResults[index]; const preview = issueSource(selectedIssue); $('issue-preview').replaceChildren(preview); $('issue-preview').hidden = false;
+ const existing = state.tasks.find(task => task.issue && task.issue.url.toLowerCase() === selectedIssue.url.toLowerCase());
+ $('confirm-issue-import').textContent = existing ? 'Open existing task' : 'Import task';
+ $('confirm-issue-import').disabled = false;
+}
+$('confirm-issue-import').onclick = async () => {
+ if (selectedIssue === null || issueBusy) return;
+ issueBusy = true; $('confirm-issue-import').disabled = true; $('search-issues').disabled = true;
+ try {
+  const data = await api.importIssue(selectedIssue.url,$('issue-project').value,issueStatus,revision);
+  state = data.state; revision = data.revision; render();
+  $('issue-import').close(); $('editor').close();
+  const task = state.tasks.find(item => item.id === data.importedTaskId);
+  openTask(task,task.projectId,task.statusId);
+  notify(data.duplicate ? 'Opened the existing imported task.' : 'Issue imported. GitHub is unchanged.');
+ } catch(error) { $('issue-message').textContent = error.message; }
+ finally { issueBusy = false; $('confirm-issue-import').disabled = false; $('search-issues').disabled = false; }
+};
+$('delete-task').onclick = () => { state.tasks = state.tasks.filter(task => task.id !== editingTask); persist(); $('editor').close(); };
+$('close').onclick = () => $('editor').close();
+$('new-task').onclick = () => openTask(null,selectedProject,'backlog');
+function openProject(project) {
+ projectLookup += 1;
+ $('save-project').disabled = false;
+ $('project-repo-status').textContent = '';
+ editingProject = project ? project.id : null;
+ for (const [id,key] of [['project-name','name'],['project-repo','repo'],['project-path','path'],['project-codex','codexId']]) $(id).value = project ? project[key] : '';
+ $('delete-project').hidden = project === null;
+ const occupied = state.tasks.some(task => task.projectId === editingProject); $('delete-project').disabled = occupied; $('delete-project').title = occupied ? 'Move tasks to another project first.' : '';
+ fillCatalog(project);
+ $('project-editor').showModal(); $('project-name').focus();
+}
+$('project-form').onsubmit = event => {
+ event.preventDefault(); const name = $('project-name').value.trim(); if (name.length === 0) return;
+ const project = {id:editingProject || crypto.randomUUID(),name,repo:$('project-repo').value.trim(),path:$('project-path').value.trim(),codexId:$('project-codex').value.trim(),hostId:$('project-host').value};
+ const index = state.projects.findIndex(item => item.id === editingProject); if (index >= 0) state.projects[index] = project; else state.projects.push(project);
+ persist(); $('project-editor').close();
+};
+$('delete-project').onclick = () => { state.projects = state.projects.filter(project => project.id !== editingProject); if (selectedProject === editingProject) selectedProject = null; persist(); $('project-editor').close(); };
+$('close-project').onclick = () => $('project-editor').close();
+$('add-project').onclick = () => openProject(null); $('sidebar-add').onclick = () => openProject(null);
+$('edit-project').onclick = () => { const project = projectFor(selectedProject); openProject(project); };
+$('overview').onclick = () => selectProject(null);
+$('by-project').onclick = () => { view = 'projects'; render(); };
+$('by-status').onclick = () => { view = 'status'; render(); };
+$('search').oninput = render;
+
+function fillCatalog(project) {
+ const selectedId = project ? project.codexId : '';
+ const selectedHost = project ? project.hostId || 'local' : 'local';
+ $('project-host').value = selectedHost;
+ $('codex-project').replaceChildren();
+ const none = element('option','','No Codex project'); none.value = ''; $('codex-project').append(none);
+ catalog.forEach((item,index) => {
+  const label = item.label+' — '+item.path;
+  const option = element('option','',label); option.value = String(index);
+  option.selected = item.projectId === selectedId && item.hostId === selectedHost;
+  $('codex-project').append(option);
+ });
+ if (selectedId && catalog.some(item => item.projectId === selectedId && item.hostId === selectedHost) === false) {
+  const retained = element('option','','Linked project (refresh catalog to update)'); retained.value = 'retained'; retained.selected = true; $('codex-project').append(retained);
+ }
+}
+$('codex-project').onchange = async () => {
+ projectLookup += 1;
+ const request = projectLookup;
+ const value = $('codex-project').value;
+ if (value === 'retained') return;
+ const project = value === '' ? null : catalog[Number(value)];
+ $('project-codex').value = project ? project.projectId : '';
+ $('project-host').value = project ? project.hostId : 'local';
+ $('save-project').disabled = false;
+ $('project-repo-status').textContent = '';
+ if (project === null) return;
+ $('project-name').value = project.label;
+ $('project-path').value = project.path;
+ $('project-repo').value = '';
+ $('save-project').disabled = true;
+ $('project-repo-status').textContent = 'Reading Git repository…';
+ try {
+  const details = await api.resolveProject(project.projectId,project.hostId);
+  if (request !== projectLookup) return;
+  $('project-repo').value = details.repo;
+  const messages = {'found':'','no-origin':'This project has no Git origin configured.','not-a-repository':'This project is not a Git repository.','remote-host':'The Git URL must be entered manually for a project on another host.'};
+  $('project-repo-status').textContent = messages[details.repoStatus];
+ } catch(error) {
+  if (request !== projectLookup) return;
+  $('project-repo-status').textContent = error.message;
+ } finally { if (request === projectLookup) $('save-project').disabled = false; }
+};
+async function requestAgent(text) {
+ try { await api.message(text); notify('Requested in chat.'); } catch (error) { notify(error.message); }
+}
+$('sync-projects').onclick = () => requestAgent('Use the taskboard skill to refresh the Codex project catalog with list_projects and taskboard_sync_projects. Do not create board projects or change existing tasks.');
+function renderChatPicker() {
+ $('selected-chats').replaceChildren();
+ for (const chat of selectedChats) {
+  const row = element('div','selected-chat');
+  const elsewhere = chat.threadId && chat.deviceId && chat.deviceId !== deviceId;
+  const label = elsewhere ? chat.title+' · '+chat.deviceName : chat.title;
+  const title = element('button','selected-chat-open',label);
+  const icon = chatIcon();
+  title.prepend(icon);
+  title.disabled = Boolean(elsewhere);
+  title.type = 'button';
+  title.title = 'Open '+chat.title;
+  title.onclick = () => openChat(chat);
+  const remove = element('button','icon','×'); remove.type = 'button'; remove.setAttribute('aria-label','Unlink '+chat.title);
+  remove.onclick = () => { const key = chatKey(chat); selectedChats = selectedChats.filter(item => chatKey(item) !== key); renderChatPicker(); };
+  row.append(title,remove); $('selected-chats').append(row);
+ }
+ const project = projectFor($('task-project').value);
+ configureCreateChat($('create-agent-chat'),project);
+ const scoped = project && project.codexId && $('all-chats').checked === false;
+ const query = $('chat-search').value.toLowerCase();
+ const choices = chatCatalog.filter(chat => {
+  const title = chat.title.toLowerCase();
+  const matchesProject = scoped ? chat.projectId === project.codexId && chat.hostId === project.hostId : true;
+  return matchesProject && title.includes(query);
+ });
+ $('chat-options').replaceChildren();
+ for (const chat of choices) {
+  const label = element('label','chat-choice'); const checkbox = element('input',''); checkbox.type = 'checkbox';
+  const key = chatKey(chat); checkbox.checked = selectedChats.some(item => chatKey(item) === key);
+  checkbox.onchange = () => {
+   if (checkbox.checked) selectedChats.push({...chat});
+   else selectedChats = selectedChats.filter(item => chatKey(item) !== key);
+   renderChatPicker();
+  };
+  const title = element('span','',chat.title); label.append(checkbox,title); $('chat-options').append(label);
+ }
+ if (choices.length === 0) { const empty = element('p','form-note',query ? 'No matching chats.' : 'No synced chats in this view.'); $('chat-options').append(empty); }
+ const scope = scoped ? 'This project' : 'All projects';
+ const date = chatsUpdatedAt ? new Date(chatsUpdatedAt) : null;
+ const refreshed = date ? ' · Synced '+date.toLocaleString() : ' · Not synced yet';
+ $('chat-status').textContent = scope+refreshed+'. Sync chats asks Codex to refresh recent chat titles; Reload list loads the results.';
+}
+$('chat-search').oninput = renderChatPicker;
+$('all-chats').onchange = renderChatPicker;
+$('task-project').onchange = renderChatPicker;
+$('sync-chats').onclick = () => requestAgent('Use the taskboard skill to refresh the recent Codex chat catalog with list_threads and taskboard_sync_chats. Include confirmed chat ID, host, exact title and project ID. Do not modify ticket links or send messages to any chat.');
+$('reload-chats').onclick = async () => {
+ try { const data = await api.read(); chatCatalog = data.chatCatalog; chatsUpdatedAt = data.chatsUpdatedAt; renderChatPicker(); } catch(error) { $('chat-status').textContent = error.message; }
+};
+$('refresh-board').onclick = async () => {
+ try {
+  const result = await api.read(); state = result.state; revision = result.revision; catalog = result.catalog;
+  failed = false; document.body.classList.remove('save-error'); $('save-status').textContent = 'All changes saved'; render();
+ } catch(error) { notify(error.message); }
+};
+render();
+return data => {
+ chatCatalog = data.chatCatalog; chatsUpdatedAt = data.chatsUpdatedAt;
+ if ($('editor').open) renderChatPicker();
+ if (saving || failed || document.querySelector('dialog[open]')) return;
+ if (data.revision < revision) return;
+ state = data.state; revision = data.revision; catalog = data.catalog;
+ if (projectFor(selectedProject) === undefined) selectedProject = null;
+ render();
+};
+
+}

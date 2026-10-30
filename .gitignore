@@ -1,0 +1,12 @@
+node_modules/
+/dist/
+releases/
+work/
+*.sqlite*
+
+site/.git/
+TaskBoard-connection.json
+
+.env*
+.dev.vars*
+connection.json

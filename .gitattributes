@@ -1,0 +1,2 @@
+plugins/taskboard/dist/** linguist-generated=true -whitespace
+site/lib/board-api.mjs linguist-generated=true -whitespace
