@@ -38016,7 +38016,7 @@ var iconFile = new URL("../assets/icon.svg", import.meta.url);
 var icon = await readFile4(iconFile);
 var encodedIcon = icon.toString("base64");
 var icons = [{ src: "data:image/svg+xml;base64," + encodedIcon, mimeType: "image/svg+xml", sizes: ["any"] }];
-var server = new McpServer({ name: "taskboard", version: "0.10.1", icons });
+var server = new McpServer({ name: "taskboard", version: "0.10.2", icons });
 var registerHandler = server.server.setRequestHandler.bind(server.server);
 server.server.setRequestHandler = (schema, handler) => {
   if (schema !== ListToolsRequestSchema) return registerHandler(schema, handler);
@@ -38026,8 +38026,8 @@ server.server.setRequestHandler = (schema, handler) => {
     return { ...listed, tools };
   });
 };
-var uri = "ui://taskboard/0.10.1/board.html";
-var panelUri = "ui://taskboard/0.10.1/panel.html";
+var uri = "ui://taskboard/0.10.2/board.html";
+var panelUri = "ui://taskboard/0.10.2/panel.html";
 function registerBoardResource(name, resourceUri, preferredDisplayMode) {
   N3(server, name, resourceUri, {}, async () => {
     const file2 = new URL("./app.html", import.meta.url);

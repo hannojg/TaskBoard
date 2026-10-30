@@ -1902,7 +1902,17 @@ aside > button,
   text-decoration: underline;
 }
 .asana-badge {
-  color: #c16666;
+  width: 22px;
+  justify-content: center;
+  color: #ed6a75;
+}
+.asana-badge svg {
+  width: 15px;
+  height: 15px;
+}
+.asana-badge:hover {
+  color: #d75662;
+  text-decoration: none;
 }
 .asana-actions {
   display: flex;
@@ -51963,9 +51973,29 @@ container holding the app. Specify either width or maxWidth, and either height o
       actions.append(create2);
       card.append(header);
       if (task.asana) {
-        const label = task.asana.syncError ? "Asana \xB7 refresh needs attention" : "Asana \u2197";
-        const badge = element("span", "issue-badge asana-badge", label);
-        card.append(badge);
+        const link = linkNode(task.asana.url, "");
+        link.className = "issue-badge asana-badge";
+        link.title = task.asana.syncError ? "Open in Asana \xB7 refresh needs attention" : "Open in Asana";
+        link.setAttribute("aria-label", link.title);
+        link.draggable = false;
+        const importButton = $("open-asana-import");
+        const mark = importButton.querySelector("svg");
+        const icon = mark.cloneNode(true);
+        link.append(icon);
+        link.onclick = async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          try {
+            await api2.openLink(task.asana.url);
+          } catch (error62) {
+            notify(error62.message);
+          }
+        };
+        link.ondragstart = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        };
+        card.append(link);
       }
       if (task.issue) {
         const link = linkNode(task.issue.url, "GitHub #" + task.issue.number);
@@ -52869,7 +52899,7 @@ container holding the app. Specify either width or maxWidth, and either height o
   }
 
   // src/ui/bridge.js
-  var app = new i({ name: "taskboard", version: "0.10.1" });
+  var app = new i({ name: "taskboard", version: "0.10.2" });
   new OpenAIExtensions(app);
   var accept;
   var workspace = document.getElementById("workspace");

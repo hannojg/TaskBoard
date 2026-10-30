@@ -276,9 +276,23 @@ function taskCard(task,group,groupByProject) {
  actions.append(create);
  card.append(header);
  if (task.asana) {
-  const label = task.asana.syncError ? 'Asana · refresh needs attention' : 'Asana ↗';
-  const badge = element('span','issue-badge asana-badge',label);
-  card.append(badge);
+  const link = linkNode(task.asana.url,'');
+  link.className = 'issue-badge asana-badge';
+  link.title = task.asana.syncError ? 'Open in Asana · refresh needs attention' : 'Open in Asana';
+  link.setAttribute('aria-label',link.title);
+  link.draggable = false;
+  const importButton = $('open-asana-import');
+  const mark = importButton.querySelector('svg');
+  const icon = mark.cloneNode(true);
+  link.append(icon);
+  link.onclick = async event => {
+   event.preventDefault();
+   event.stopPropagation();
+   try { await api.openLink(task.asana.url); }
+   catch(error) { notify(error.message); }
+  };
+  link.ondragstart = event => { event.preventDefault(); event.stopPropagation(); };
+  card.append(link);
  }
  if (task.issue) {
   const link = linkNode(task.issue.url,'GitHub #'+task.issue.number);
