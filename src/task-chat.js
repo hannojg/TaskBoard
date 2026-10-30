@@ -1,5 +1,6 @@
 import { descriptionText } from './description.js';
 import { parseReferenceUrl } from './references.js';
+import { asanaPluginMention,asanaReadInstructions } from './asana.js';
 
 export function chatUrl(chat) {
  if (chat.url) {
@@ -33,8 +34,9 @@ export function taskChatUrl(task,project,statusName) {
  if (project.path) lines.push('Project folder: '+project.path);
  if (project.repo) lines.push('Repository: '+project.repo);
  if (task.asana) {
-  lines.push('','## Asana source','',task.asana.url,'Asana task GID: '+task.asana.gid,
-   'Asana owns this ticket’s title and description. Read the latest source through the connected Asana plugin before starting work. Keep Asana read-only and preserve this source relation when linking the chat.');
+  lines.push('',asanaPluginMention,'','## Asana source','',task.asana.url,'Asana task GID: '+task.asana.gid,
+   asanaReadInstructions,
+   'Asana owns this ticket’s title and description. Read the latest source before starting work and preserve this source relation when linking the chat.');
  }
  if (task.description) {
   const heading = task.issue ? '## Local notes' : '## Description';

@@ -19777,7 +19777,20 @@ var referencesSchema = referenceListSchema.superRefine((references, ctx) => {
   }
 });
 
+// .app.json
+var app_default = {
+  apps: {
+    asana: {
+      id: "asdk_app_69616780bd208191b4fb44ba44f72b61",
+      required: false
+    }
+  }
+};
+
 // src/asana.js
+var asanaApp = app_default.apps.asana;
+var asanaPluginMention = "[@Asana](plugin://plugin_" + asanaApp.id + ")";
+var pluginContext = "[@TaskBoard](plugin://taskboard@taskboard-local)\n" + asanaPluginMention + "\n\n";
 function asanaTaskAddress(value) {
   let url2;
   try {

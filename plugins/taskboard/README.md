@@ -70,7 +70,7 @@ Write checkpoints in the description using Markdown checkboxes: `- [ ] A step` o
 
 **Import from GitHub** previews an issue URL or searches a repository, then imports the selected issue. It requires the GitHub CLI to be installed and signed in. These requests are read-only. Imported title, body, labels and open/closed state form a source snapshot; local notes, title, workflow status and chat links remain independent. **Refresh from GitHub** updates only that snapshot. Reimporting an issue opens its existing task.
 
-**Asana…** links tickets through your connected Asana plugin in Codex. Asana owns their read-only title and description, and the card title opens the original task. Refreshes preserve TaskBoard workflow, references and linked chats. Use **Refresh linked tickets** on demand or **Set up hourly sync** for recurring agent-driven refreshes on this Mac. See [Link Asana tickets](docs/asana.md) for connection and setup details. Existing boards need the updated shared Site API as well as the plugin.
+**Asana…** links tickets through the official Asana plugin, declared as an optional app connection. Setup and linking requests explicitly select it, and a connection check requires a successful read inside the chat. Asana owns their read-only title and description, and the card title opens the original task. Refreshes preserve TaskBoard workflow, references and linked chats. Use **Refresh linked tickets** on demand or **Set up hourly sync** for recurring agent-driven refreshes on this Mac. See [Link Asana tickets](docs/asana.md) for connection and setup details. Existing boards need the updated shared Site API as well as the plugin.
 
 ## Storage and privacy
 

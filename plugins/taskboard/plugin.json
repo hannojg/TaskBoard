@@ -1,13 +1,14 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "taskboard",
-  "version": "0.10.2",
+  "version": "0.10.3",
   "description": "A shared project and task board linked to Codex projects and chats.",
   "author": {
     "name": "Hanno"
   },
   "extensions": {
     "com.openai": {
+      "apps": "./.app.json",
       "requires_local_executor": true,
       "interface": {
         "displayName": "TaskBoard",

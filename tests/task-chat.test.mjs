@@ -1,9 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chatUrl,taskChatUrl } from '../src/task-chat.js';
+import { asanaPluginMention } from '../src/asana.js';
 
 const project = {id:'project-1',name:'Example project',path:'/Users/example/Project & tools',repo:'https://github.com/example/repo',hostId:'local'};
 const task = {id:'ticket-1',title:'Keep #tags & Unicode ✓',description:'First line\n\n**Markdown** & details',priority:'High',due:'2026-11-03',statusId:'review',chats:[]};
+
+test('Asana task drafts explicitly select the official plugin without adding it to local tasks',() => {
+ const asana = {gid:'1234567890123456',url:'https://app.asana.com/1/100/task/1234567890123456'};
+ const linkedTask = {...task,asana};
+ const linkedUrl = taskChatUrl(linkedTask,project,'Waiting for review');
+ const parsedLinked = new URL(linkedUrl);
+ const linkedPrompt = parsedLinked.searchParams.get('prompt');
+ const selectsAsana = linkedPrompt.includes(asanaPluginMention);
+ assert.equal(selectsAsana,true);
+ const localUrl = taskChatUrl(task,project,'Waiting for review');
+ const parsedLocal = new URL(localUrl);
+ const localPrompt = parsedLocal.searchParams.get('prompt');
+ const selectsLocalAsana = localPrompt.includes(asanaPluginMention);
+ assert.equal(selectsLocalAsana,false);
+});
 
 test('image attachments keep draft links small and point the agent to the saved ticket',() => {
  const source = 'data:image/png;base64,'+'a'.repeat(2400000);

@@ -4,7 +4,7 @@ import { boardTemplateFiles } from './board-template.mjs';
 const destination = resolve('plugins','taskboard');
 await rm(destination,{recursive:true,force:true});
 await mkdir(destination,{recursive:true});
-for (const file of ['plugin.json','mcp.json','dist/app.html','dist/server.mjs','assets','skills','scripts/launch-mcp.sh','scripts/connect.mjs','scripts/connection.mjs','scripts/share-connection.mjs','scripts/creation.mjs','scripts/prepare-board.mjs','scripts/board-template.mjs','docs','README.md']) {
+for (const file of ['plugin.json','.app.json','mcp.json','dist/app.html','dist/server.mjs','assets','skills','scripts/launch-mcp.sh','scripts/connect.mjs','scripts/connection.mjs','scripts/share-connection.mjs','scripts/creation.mjs','scripts/prepare-board.mjs','scripts/board-template.mjs','docs','README.md']) {
  const target = join(destination,file); await cp(file,target,{recursive:true});
 }
 await cp('dist/complete-creation.mjs',join(destination,'scripts','complete-creation.mjs'));

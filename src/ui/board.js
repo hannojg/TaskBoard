@@ -6,7 +6,7 @@ import { descriptionText } from '../description.js';
 import { startAutoRefresh } from './auto-refresh.js';
 import { markdownCheckpoints,setCheckpoint } from '../checkpoints.js';
 import { parseReferenceUrl } from '../references.js';
-import { asanaLinkPrompt,asanaRefreshPrompt,asanaSchedulePrompt } from '../asana.js';
+import { asanaConnectionPrompt,asanaLinkPrompt,asanaRefreshPrompt,asanaSchedulePrompt } from '../asana.js';
 export function startBoard(initialData,api) {
 const $ = id => document.getElementById(id);
 
@@ -720,7 +720,8 @@ $('open-asana-import').onclick = () => openAsana($('task-project').value,$('task
 $('close-asana').onclick = () => $('asana-manager').close();
 $('connect-asana').onclick = async () => {
  $('asana-manager').close();
- await requestAgent('Check whether the Asana plugin is installed and connected. Use plugin discovery to help me install/connect it if needed. If connected, verify it with a read-only account or task read. Do not modify Asana or import tickets yet.');
+ const prompt = asanaConnectionPrompt();
+ await requestAgent(prompt);
 };
 $('asana-link-form').onsubmit = async event => {
  event.preventDefault();

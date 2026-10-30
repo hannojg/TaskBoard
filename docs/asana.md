@@ -1,10 +1,12 @@
 # Link Asana tickets
 
-TaskBoard uses the connected **Asana** plugin in Codex. You do not need a separate Asana developer application or personal access token.
+TaskBoard explicitly references the official **Asana** plugin as an optional connection. Its setup and linking requests select that plugin directly. Other TaskBoard features work without Asana, and you do not need a separate Asana developer application or personal access token.
 
 1. Open **Asana…** in TaskBoard's sidebar and choose **Check Asana connection**. Codex checks the connection and helps you install/connect Asana when needed.
 2. Paste an Asana task link, choose its TaskBoard project and click **Link ticket through Codex**. From a new ticket, the **Asana icon** at the top also preserves the selected workflow status.
 3. Codex reads the selected task and creates its linked board entry. Linking the same Asana task again opens the existing ticket.
+
+The connection check succeeds only after Asana can be read inside that chat. A legacy MCP configuration or an external connection test does not establish this access. If the official plugin is installed but its tools are missing from the chat, start a new chat with Asana selected or reload Codex, then retry. Account and workspace availability still apply; TaskBoard cannot bypass them.
 
 Asana owns the title and description. They are read-only in TaskBoard, and the title on the card opens the original Asana task. Edit those fields in Asana, then refresh. TaskBoard keeps its own workflow status, priority, due date, references and Codex chat links. Refreshing source content preserves that extra context.
 

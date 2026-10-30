@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { sharedFixture } from './support/shared.mjs';
-import { asanaTaskAddress,asanaLinkPrompt,asanaRefreshPrompt,asanaSchedulePrompt } from '../src/asana.js';
+import { asanaTaskAddress,asanaConnectionPrompt,asanaLinkPrompt,asanaRefreshPrompt,asanaSchedulePrompt } from '../src/asana.js';
 import { asanaTaskSchema } from '../src/server/asana-schema.mjs';
 
 const project = {id:'p',name:'Project',repo:'',path:'/repo',codexId:'codex-p',hostId:'local'};
@@ -133,6 +134,36 @@ test('agent requests carry explicit scope and bind scheduled sync to its shared 
  const schedule = asanaSchedulePrompt('https://board.example');
  assert.match(schedule, /boardUrl equals "https:\/\/board.example"/);
  assert.match(schedule, /Inspect existing automations/);
+});
+
+test('every Asana request selects the declared official plugin',async () => {
+ const file = new URL('../.app.json',import.meta.url);
+ const text = await readFile(file,'utf8');
+ const appReferences = JSON.parse(text);
+ const app = appReferences.apps.asana;
+ const mention = '[@Asana](plugin://plugin_'+app.id+')';
+ const connection = asanaConnectionPrompt();
+ const link = asanaLinkPrompt(source.url,'p','todo');
+ const refresh = asanaRefreshPrompt(source.gid);
+ const schedule = asanaSchedulePrompt('https://board.example');
+ for (const prompt of [connection,link,refresh,schedule]) {
+  const included = prompt.includes(mention);
+  assert.equal(included,true);
+ }
+});
+
+test('the marketplace package includes its optional official Asana app reference',async () => {
+ for (const directory of ['../','../plugins/taskboard/']) {
+  const root = new URL(directory,import.meta.url);
+  const manifestPath = new URL('plugin.json',root);
+  const manifestText = await readFile(manifestPath,'utf8');
+  const manifest = JSON.parse(manifestText);
+  const appPath = new URL(manifest.extensions['com.openai'].apps,root);
+  const appText = await readFile(appPath,'utf8');
+  const appReferences = JSON.parse(appText);
+  assert.equal(appReferences.apps.asana.id,'asdk_app_69616780bd208191b4fb44ba44f72b61');
+  assert.equal(appReferences.apps.asana.required,false);
+ }
 });
 
 test('saving an Asana link to an older Site fails before sending a write',async t => {
