@@ -28,10 +28,23 @@ export class Store {
   return data;
  }
  read() { return this.request('read'); }
- save(state,revision) { return this.request('save',{state,revision}); }
+ async save(state,revision) {
+  const hasReferences = state.tasks.some(task => task.references && task.references.length > 0);
+  const hasAsana = state.tasks.some(task => task.asana);
+  if (hasReferences || hasAsana) {
+   const current = await this.read();
+   const supportsReferences = current.features?.includes('references');
+   const supportsAsana = current.features?.includes('asana');
+   if (hasReferences && supportsReferences !== true) throw new Error('Update the shared board Site to support references before saving reference links.');
+   if (hasAsana && supportsAsana !== true) throw new Error('Update the shared board Site to support Asana before saving linked tickets.');
+  }
+  return this.request('save',{state,revision});
+ }
  syncCatalog(projects) { return this.request('projects',{projects}); }
  syncChats(chats) { return this.request('chats',{chats}); }
  importLocal(snapshot) { return this.request('import',{snapshot}); }
+ importAsana(source,projectId,statusId,revision) { return this.request('asana_import',{source,projectId,statusId,revision}); }
+ syncAsana(tasks,failures,revision) { return this.request('asana_sync',{tasks,failures,revision}); }
 }
 
 export async function loadStore(directory) {

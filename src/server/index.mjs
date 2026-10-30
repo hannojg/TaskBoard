@@ -1,4 +1,5 @@
 import { fetchIssue,searchIssues,addImportedIssue,updateImportedIssue } from './github.mjs';
+import { asanaTaskSchema,asanaTasksSchema,asanaFailuresSchema } from './asana-schema.mjs';
 import { connectFromFile,chooseConnectionFile } from './connection.mjs';
 import { beginCreation,readCreation,updateCreation,creationPrompt } from '../../scripts/creation.mjs';
 import { chatCatalogSchema } from './chats.mjs';
@@ -20,7 +21,7 @@ const iconFile = new URL('../assets/icon.svg',import.meta.url);
 const icon = await readFile(iconFile);
 const encodedIcon = icon.toString('base64');
 const icons = [{src:'data:image/svg+xml;base64,'+encodedIcon,mimeType:'image/svg+xml',sizes:['any']}];
-const server = new McpServer({name:'taskboard',version:'0.9.4',icons});
+const server = new McpServer({name:'taskboard',version:'0.10.1',icons});
 // The SDK omits tool icons from tools/list; expose them at the protocol boundary.
 const registerHandler = server.server.setRequestHandler.bind(server.server);
 server.server.setRequestHandler = (schema,handler) => {
@@ -31,8 +32,8 @@ server.server.setRequestHandler = (schema,handler) => {
   return {...listed,tools};
  });
 };
-const uri = 'ui://taskboard/0.9.4/board.html';
-const panelUri = 'ui://taskboard/0.9.4/panel.html';
+const uri = 'ui://taskboard/0.10.1/board.html';
+const panelUri = 'ui://taskboard/0.10.1/panel.html';
 function registerBoardResource(name,resourceUri,preferredDisplayMode) {
  registerAppResource(server,name,resourceUri,{},async () => {
   const file = new URL('./app.html',import.meta.url);
@@ -60,7 +61,14 @@ async function launchState() {
 }
 async function readBoard() {
  const state = await launchState();
- return state.connectionRequired ? state : store.read();
+ if (state.connectionRequired) return state;
+ const data = await store.read();
+ return {...data,boardUrl:store.connection.url};
+}
+async function requireAsanaSupport() {
+ const current = await store.read();
+ const supported = current.features?.includes('asana');
+ if (supported !== true) throw new Error('Update the shared board Site to the current TaskBoard API before linking Asana tickets.');
 }
 register('taskboard_open','Open TaskBoard fullscreen from the Codex sidebar.',{},readOnly,launchState,{'openai/ui':{entrypoints:[{type:'global'}]}},'TaskBoard');
 register('taskboard_open_panel','Open TaskBoard alongside a Codex chat.',{},readOnly,launchState,{ui:{resourceUri:panelUri,visibility:['app','model']},'openai/ui':{entrypoints:[{type:'thread'}]}},'TaskBoard');
@@ -92,6 +100,14 @@ register('taskboard_update_creation','Record board setup progress and its confir
  return {...state,creation};
 });
 register('taskboard_save','Save board edits from the interactive panel with revision conflict detection.',{state:boardSchema,revision:z.number().int().nonnegative()},write,args => store.save(args.state,args.revision));
+register('taskboard_import_asana','Link a selected Asana task read through the connected Asana plugin. Asana owns title and description; GID prevents duplicate links. Never writes to Asana.',{source:asanaTaskSchema,projectId:z.string(),statusId:z.enum(['backlog','todo','progress','review','blocked','done']),revision:z.number().int().nonnegative()},write,async args => {
+ await requireAsanaSupport();
+ return store.importAsana(args.source,args.projectId,args.statusId,args.revision);
+},{ui:{resourceUri:uri,visibility:['model']}});
+register('taskboard_sync_asana','Refresh linked Asana titles and descriptions from freshly read Asana plugin results. Preserve workflow, due dates, chat links and references. Record access failures without detaching tickets. Never writes to Asana.',{tasks:asanaTasksSchema,failures:asanaFailuresSchema.default([]),revision:z.number().int().nonnegative()},write,async args => {
+ await requireAsanaSupport();
+ return store.syncAsana(args.tasks,args.failures,args.revision);
+},{ui:{resourceUri:uri,visibility:['model']}});
 register('taskboard_github_search','Read GitHub issues using the local signed-in GitHub CLI. Search one repository or fetch an issue URL; never writes to GitHub.',{repository:z.string(),query:z.string().max(500)},readOnly,async args => {
  const issueResults = args.query.trim().startsWith('https://') ? [await fetchIssue(args.query.trim())] : await searchIssues(args.repository,args.query);
  const current = await store.read();
@@ -119,7 +135,7 @@ register('taskboard_upsert_project','Create or update a board project. Use confi
  if (index >= 0) current.state.projects[index] = args.project; else current.state.projects.push(args.project);
  return store.save(current.state,args.revision);
 });
-register('taskboard_upsert_task','Create or update a task, including its explicit status and confirmed linked Codex chat.',{task:taskSchema,revision:z.number().int().nonnegative()},write,async args => {
+register('taskboard_upsert_task','Create or update a task, including its explicit status, confirmed linked Codex chats, and references ({url,title}, with an optional title). Slack message links are normalized to their parent thread. Preserve existing references when editing other fields.',{task:taskSchema,revision:z.number().int().nonnegative()},write,async args => {
  const current = await store.read(); const index = current.state.tasks.findIndex(item => item.id === args.task.id);
  if (index >= 0) current.state.tasks[index] = args.task; else current.state.tasks.push(args.task);
  return store.save(current.state,args.revision);

@@ -21,7 +21,7 @@ const highlighting = HighlightStyle.define([
  {tag:tags.quote,class:'md-quote'},
  {tag:[tags.processingInstruction,tags.contentSeparator],class:'md-marker'}
 ]);
-function createState(doc) {
+function createState(doc,readOnly = false) {
  const keys = [...defaultKeymap,...historyKeymap,indentWithTab];
  const bindings = keymap.of(keys);
  const highlightingExtension = syntaxHighlighting(highlighting);
@@ -37,7 +37,9 @@ function createState(doc) {
   const status = document.getElementById('description-status');
   status.textContent = message;
  });
- return EditorState.create({doc,extensions:[language,highlightingExtension,bindings,undo,selection,imagePreviews,imagePasteSession,paste,EditorView.lineWrapping,attributes,empty,updateListener]});
+ const locked = EditorState.readOnly.of(readOnly);
+ const editable = EditorView.editable.of(readOnly === false);
+ return EditorState.create({doc,extensions:[language,highlightingExtension,bindings,undo,selection,imagePreviews,imagePasteSession,paste,EditorView.lineWrapping,attributes,empty,updateListener,locked,editable]});
 }
 const initialState = createState(descriptionInput.value);
 const descriptionEditor = new EditorView({state:initialState,parent:editorContainer});
@@ -50,7 +52,7 @@ const dialog = document.getElementById('editor');
 const editorObserver = new MutationObserver(() => {
  if (dialog.open) {
   document.getElementById('description-status').textContent = '';
-  const state = createState(descriptionInput.value);
+  const state = createState(descriptionInput.value,descriptionInput.readOnly);
   descriptionEditor.setState(state);
   descriptionEditor.requestMeasure();
  }

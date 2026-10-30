@@ -164,6 +164,7 @@ export function imagePaste(onError) {
  const keys = keymap.of([{key:'Mod-z',run:cancelImagePaste}]);
  const undoPending = Prec.high(keys);
  const handler = EditorView.domEventHandlers({paste(event,view) {
+  if (view.state.readOnly) return false;
   const files = Array.from(event.clipboardData.files);
   const images = files.filter(file => file.type.startsWith('image/'));
   if (images.length === 0) return false;

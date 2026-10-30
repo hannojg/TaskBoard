@@ -62,9 +62,15 @@ Drag projects in the sidebar to reorder them, or focus a project and press Alt+U
 
 Linked chats can be searched, attached and opened from cards or the task editor. **Create agent chat** saves the ticket and opens an unsent Codex draft containing its context. Opening a draft does not create a chat relation; after you send it, the agent can link the confirmed chat back to the ticket. Chat activity does not automatically change task status.
 
+**References** links Slack threads and other web sources to a ticket, with optional labels. Choose the Slack or link icon to open its link field; a small plus appears on hover or keyboard focus. Paste a link and choose **Add reference**, then save the ticket. A pending link is also included when you choose **Save task** or **Create agent chat**. Copied Slack reply links resolve to their parent thread, and duplicate references are rejected. References are shared across Macs and included in new agent drafts; agents can read their context through the connected Slack or other app. Slack access is required to read a thread. Removing a reference only unlinks it from the ticket. Thread monitoring will be a separate feature.
+
 Descriptions show Markdown images inline, including `![Screenshot](https://example.com/image.png)` and reference-style images. Paste an image from the clipboard directly into the description to attach it. Pasted images are saved with the ticket and available on other connected Macs. Undo removes a pasted image in one step.
 
+Write checkpoints in the description using Markdown checkboxes: `- [ ] A step` or `- [x] A finished step`. Cards show these checkboxes and one nested checkbox level, with a completed count. Tick a card checkbox to save its Markdown marker. Supporting paragraphs and ordinary bullets stay in the description; cards with checkpoints show only the checkbox lines. Deeper checkbox levels remain in the description.
+
 **Import from GitHub** previews an issue URL or searches a repository, then imports the selected issue. It requires the GitHub CLI to be installed and signed in. These requests are read-only. Imported title, body, labels and open/closed state form a source snapshot; local notes, title, workflow status and chat links remain independent. **Refresh from GitHub** updates only that snapshot. Reimporting an issue opens its existing task.
+
+**Asana…** links tickets through your connected Asana plugin in Codex. Asana owns their read-only title and description, and the card title opens the original task. Refreshes preserve TaskBoard workflow, references and linked chats. Use **Refresh linked tickets** on demand or **Set up hourly sync** for recurring agent-driven refreshes on this Mac. See [Link Asana tickets](docs/asana.md) for connection and setup details. Existing boards need the updated shared Site API as well as the plugin.
 
 ## Storage and privacy
 
@@ -103,5 +109,7 @@ Exporting creates a private file in Downloads. An optional output path is accept
 The shared API source is `src/cloud/board-api.mjs`. `npm run build` also bundles it into `site/lib/board-api.mjs`. The root `site/` directory is linked to the maintainer's private Site. The installable plugin includes only the template files listed in `scripts/board-template.mjs`, excluding that Site's identity and credentials. The create-board workflow overlays those files onto a fresh Sites Vinext starter and publishes a new owner-private Site.
 
 For boards created before image support, update their shared Site with the current API bundle and route, and set `r2: "BUCKET"` in its hosting manifest before publishing through Sites. Updating the plugin alone does not update an existing board's Site.
+
+Reference support also requires updating the shared Site's API bundle. The plugin checks support before saving links, so an older Site cannot silently discard them. Update TaskBoard on each Mac before editing tickets with references; the shared API rejects writes from older plugins that would remove reference data.
 
 Provisioning progress lives in `~/Library/Application Support/TaskBoard/creation.json`, without credentials. Retries preserve the request ID, source directory and confirmed Site ID. The completion helper receives the new Site's connection through hidden stdin, validates access and saves the private local connection. Generate schema migrations from `site/` with `npm run db:generate`, then rebuild and package to update the template. Publishing this Git repository does not publish the Site or expose its board data.

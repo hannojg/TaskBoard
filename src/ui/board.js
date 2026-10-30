@@ -4,6 +4,9 @@ import { chatUrl,taskChatUrl } from '../task-chat.js';
 import { descriptionImagesReady } from './markdown.js';
 import { descriptionText } from '../description.js';
 import { startAutoRefresh } from './auto-refresh.js';
+import { markdownCheckpoints,setCheckpoint } from '../checkpoints.js';
+import { parseReferenceUrl } from '../references.js';
+import { asanaLinkPrompt,asanaRefreshPrompt,asanaSchedulePrompt } from '../asana.js';
 export function startBoard(initialData,api) {
 const $ = id => document.getElementById(id);
 
@@ -14,7 +17,11 @@ let catalog = initialData.catalog;
 let chatCatalog = initialData.chatCatalog;
 let chatsUpdatedAt = initialData.chatsUpdatedAt;
 const deviceId = initialData.deviceId;
+const boardUrl = initialData.boardUrl;
+let asanaSupported = initialData.features?.includes('asana') === true;
 let selectedChats = [];
+let selectedReferences = [];
+let referenceType = null;
 let saving = false;
 let failed = false;
 let selectedProject = null;
@@ -241,6 +248,20 @@ function taskCard(task,group,groupByProject) {
  const card = element('article','card'); card.draggable = true; card.tabIndex = 0; card.setAttribute('aria-label',task.title+'; edit task');
  const header = element('div','card-header');
  const heading = element('h2','',task.title);
+ if (task.asana) {
+  const source = linkNode(task.asana.url,task.title);
+  source.className = 'asana-title';
+  source.title = 'Open in Asana';
+  source.draggable = false;
+  source.onclick = async event => {
+   event.preventDefault();
+   event.stopPropagation();
+   try { await api.openLink(task.asana.url); }
+   catch(error) { notify(error.message); }
+  };
+  source.ondragstart = event => { event.preventDefault(); event.stopPropagation(); };
+  heading.replaceChildren(source);
+ }
  const actions = element('div','card-chat-actions');
  if (task.chats.length > 0) {
   const open = chatAction('','Open linked chat',() => openTaskChats(task));
@@ -254,6 +275,11 @@ function taskCard(task,group,groupByProject) {
  header.append(heading,actions);
  actions.append(create);
  card.append(header);
+ if (task.asana) {
+  const label = task.asana.syncError ? 'Asana · refresh needs attention' : 'Asana ↗';
+  const badge = element('span','issue-badge asana-badge',label);
+  card.append(badge);
+ }
  if (task.issue) {
   const link = linkNode(task.issue.url,'GitHub #'+task.issue.number);
   link.className = 'issue-badge';
@@ -269,12 +295,22 @@ function taskCard(task,group,groupByProject) {
   link.ondragstart = event => { event.preventDefault(); event.stopPropagation(); };
   card.append(link);
  }
- if (task.description) { const text = descriptionText(task.description); const description = element('p','',text); card.append(description); }
+ const checkpoints = markdownCheckpoints(task.description);
+ if (checkpoints.length > 0) {
+  const checklist = taskCheckpoints(task,checkpoints);
+  card.append(checklist);
+ } else if (task.description) { const text = descriptionText(task.description); const description = element('p','',text); card.append(description); }
  const meta = element('div','meta');
  const context = groupByProject ? statusFor(task.statusId) : projectFor(task.projectId);
  const contextName = context ? context.name : '';
  if (contextName) { const badge = element('span','priority',contextName); meta.append(badge); }
  if (task.priority !== 'None') { const badge = element('span','priority '+task.priority,task.priority); meta.append(badge); }
+ if (checkpoints.length > 0) {
+  const completed = checkpoints.filter(checkpoint => checkpoint.checked);
+  const progress = element('span','checkpoint-progress',completed.length+'/'+checkpoints.length);
+  progress.setAttribute('aria-label',completed.length+' of '+checkpoints.length+' checkpoints completed');
+  meta.append(progress);
+ }
  if (task.chats.length > 0) {
   const label = task.chats.length === 1 ? '1 chat' : task.chats.length+' chats';
   const chats = chatAction(label,'Open linked chat',() => openTaskChats(task));
@@ -282,6 +318,11 @@ function taskCard(task,group,groupByProject) {
   chats.prepend(icon);
   chats.className = 'priority chat-badge';
   meta.append(chats);
+ }
+ if (task.references && task.references.length > 0) {
+  const label = task.references.length === 1 ? '1 reference' : task.references.length+' references';
+  const badge = element('span','priority',label);
+  meta.append(badge);
  }
  if (task.due) { const date = new Date(task.due+'T12:00:00'); const formatted = date.toLocaleDateString(undefined,{month:'short',day:'numeric'}); const due = element('span','',formatted); meta.append(due); }
  card.append(meta);
@@ -292,6 +333,34 @@ function taskCard(task,group,groupByProject) {
  card.ondragend = () => { dragged = null; render(); };
  card.ondrop = event => { if (draggedColumn) return; event.preventDefault(); event.stopPropagation(); if (dragged && dragged !== task.id) moveTask(dragged,group,groupByProject,task.id); };
  return card;
+}
+function taskCheckpoints(task,checkpoints) {
+ const list = element('ul','card-checkpoints');
+ list.setAttribute('aria-label','Checkpoints');
+ for (const checkpoint of checkpoints) {
+  const item = element('li','card-checkpoint');
+  item.classList.toggle('checkpoint-nested',checkpoint.depth === 1);
+  const label = element('label','');
+  const checkbox = element('input','');
+  checkbox.type = 'checkbox';
+  checkbox.checked = checkpoint.checked;
+  checkbox.disabled = Boolean(task.asana);
+  const text = element('span','',checkpoint.text);
+  checkbox.onchange = async () => {
+   if (saving || failed || task.asana) {
+    checkbox.checked = checkpoint.checked;
+    return;
+   }
+   task.description = setCheckpoint(task.description,checkpoint.position,checkbox.checked);
+   await persist();
+  };
+  label.append(checkbox,text);
+  item.append(label);
+  list.append(item);
+ }
+ list.onclick = event => event.stopPropagation();
+ list.ondragstart = event => { event.preventDefault(); event.stopPropagation(); };
+ return list;
 }
 function githubIcon() {
  const namespace = 'http://www.w3.org/2000/svg';
@@ -374,16 +443,26 @@ function openTask(task,projectId,statusId) {
  editingTask = task ? task.id : null;
  $('task-create-chat').hidden = task === null;
  $('task-save-error').hidden = true;
- $('open-issue-import').hidden = task !== null;
+ $('task-source-actions').hidden = task !== null;
+ const sourceOwned = Boolean(task && task.asana);
+ $('title').readOnly = sourceOwned;
+ $('description').readOnly = sourceOwned;
+ if (sourceOwned) $('title').removeAttribute('maxlength');
+ else $('title').maxLength = 200;
+ renderTaskAsana(task);
  $('description-label').textContent = task && task.issue ? 'Local notes' : 'Description';
  renderTaskIssue(task);
  $('title').value = task ? task.title : ''; $('description').value = task ? task.description : ''; $('priority').value = task ? task.priority : 'None'; $('due').value = task ? task.due : '';
  selectedChats = task ? [...task.chats] : [];
+ selectedReferences = task && task.references ? [...task.references] : [];
+ closeReferenceComposer();
+ renderReferences();
  $('chat-search').value = '';
  $('all-chats').checked = false;
  const targetProject = projectId || state.projects[0].id;
  fillOptions('task-project',state.projects,targetProject); fillOptions('task-status',statuses,statusId || 'backlog');
  renderChatPicker();
+ $('delete-task').textContent = sourceOwned ? 'Remove from board' : 'Delete task';
  $('delete-task').hidden = task === null; $('editor').showModal(); $('title').focus();
 }
 async function saveTask(createChat) {
@@ -392,10 +471,18 @@ async function saveTask(createChat) {
  try {
   const ready = await descriptionImagesReady();
   if (ready === false || $('editor').open === false) return;
-  const title = $('title').value.trim(); if (title.length === 0) return;
   const existing = state.tasks.find(item => item.id === editingTask);
-  const description = $('description').value.trim();
-  const task = {...existing,id:editingTask || crypto.randomUUID(),title,description,priority:$('priority').value,due:$('due').value,projectId:$('task-project').value,statusId:$('task-status').value,chats:selectedChats};
+  const sourceOwned = Boolean(existing && existing.asana);
+  const title = sourceOwned ? existing.title : $('title').value.trim();
+  if (title.length === 0) return;
+  const pendingUrl = $('reference-url').value;
+  const pendingTitle = $('reference-title').value;
+  if (pendingUrl || pendingTitle) {
+   const added = addReference();
+   if (added === false) return;
+  }
+  const description = sourceOwned ? existing.description : $('description').value.trim();
+  const task = {...existing,id:editingTask || crypto.randomUUID(),title,description,priority:$('priority').value,due:$('due').value,projectId:$('task-project').value,statusId:$('task-status').value,chats:selectedChats,references:selectedReferences};
   const index = state.tasks.findIndex(item => item.id === editingTask); if (index >= 0) state.tasks[index] = task; else state.tasks.push(task);
   const saved = await persist();
   if (saved === false) {
@@ -405,6 +492,7 @@ async function saveTask(createChat) {
   }
   $('editor').close();
   if (createChat) await createTaskChat(task);
+  return task;
  } finally {
   savingTask = false;
  }
@@ -417,6 +505,146 @@ $('create-agent-chat').onclick = () => {
  const valid = $('task-form').reportValidity();
  if (valid) saveTask(true);
 };
+function renderReferences() {
+ $('task-references').replaceChildren();
+ for (const reference of selectedReferences) {
+  const details = parseReferenceUrl(reference.url);
+  const type = details.type === 'slack' ? 'Slack thread' : 'Web link';
+  const label = reference.title || type;
+  const row = element('div','task-reference');
+  const icon = referenceIcon(details.type);
+  const content = element('div','reference-content');
+  const link = linkNode(reference.url,label+' ↗');
+  link.className = 'reference-link';
+  link.title = reference.url;
+  link.onclick = async event => {
+   event.preventDefault();
+   try { await api.openLink(reference.url); }
+   catch(error) { notify(error.message); }
+  };
+  const url = new URL(reference.url);
+  const source = element('span','reference-source',type+' · '+url.hostname);
+  const remove = element('button','icon','×');
+  remove.type = 'button';
+  remove.setAttribute('aria-label','Remove reference '+label);
+  remove.onclick = () => {
+   selectedReferences = selectedReferences.filter(item => item.url !== reference.url);
+   $('reference-error').hidden = true;
+   renderReferences();
+  };
+  content.append(link,source);
+  row.append(icon,content,remove);
+  $('task-references').append(row);
+ }
+}
+function referenceIcon(type) {
+ const namespace = 'http://www.w3.org/2000/svg';
+ const icon = document.createElementNS(namespace,'svg');
+ icon.setAttribute('class','reference-icon');
+ icon.setAttribute('viewBox','0 0 24 24');
+ icon.setAttribute('aria-hidden','true');
+ if (type === 'slack') {
+  const marks = [
+   {fill:'#36c5f0',d:'M8 1a2 2 0 0 1 2 2v2H8a2 2 0 0 1 0-4ZM3 6h7v4H3a2 2 0 0 1 0-4Z'},
+   {fill:'#2eb67d',d:'M23 8a2 2 0 0 1-2 2h-2V8a2 2 0 0 1 4 0ZM18 3v7h-4V3a2 2 0 0 1 4 0Z'},
+   {fill:'#ecb22e',d:'M16 23a2 2 0 0 1-2-2v-2h2a2 2 0 0 1 0 4ZM21 18h-7v-4h7a2 2 0 0 1 0 4Z'},
+   {fill:'#e01e5a',d:'M1 16a2 2 0 0 1 2-2h2v2a2 2 0 0 1-4 0ZM6 21v-7h4v7a2 2 0 0 1-4 0Z'}
+  ];
+  for (const mark of marks) {
+   const path = document.createElementNS(namespace,'path');
+   path.setAttribute('fill',mark.fill);
+   path.setAttribute('d',mark.d);
+   icon.append(path);
+  }
+ } else {
+  icon.setAttribute('fill','none');
+  icon.setAttribute('stroke','currentColor');
+  icon.setAttribute('stroke-width','1.8');
+  icon.setAttribute('stroke-linecap','round');
+  icon.setAttribute('stroke-linejoin','round');
+  const path = document.createElementNS(namespace,'path');
+  path.setAttribute('d','M10 13a5 5 0 0 0 7.1 0l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7M14 11a5 5 0 0 0-7.1 0l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7');
+  icon.append(path);
+ }
+ return icon;
+}
+function closeReferenceComposer() {
+ referenceType = null;
+ $('reference-composer').hidden = true;
+ $('reference-url').value = '';
+ $('reference-title').value = '';
+ $('reference-error').hidden = true;
+ $('reference-slack').setAttribute('aria-expanded','false');
+ $('reference-link').setAttribute('aria-expanded','false');
+}
+function toggleReferenceComposer(type) {
+ if (referenceType === type) {
+  closeReferenceComposer();
+  return;
+ }
+ referenceType = type;
+ const slack = type === 'slack';
+ $('reference-composer').hidden = false;
+ $('reference-composer-title').textContent = slack ? 'Add Slack thread' : 'Add web link';
+ $('reference-url').placeholder = slack ? 'Paste a Slack thread link' : 'https://example.com';
+ $('reference-title').placeholder = slack ? 'e.g. Store upload request' : 'e.g. Upload instructions';
+ $('reference-error').hidden = true;
+ const slackExpanded = String(slack);
+ const linkExpanded = String(slack === false);
+ $('reference-slack').setAttribute('aria-expanded',slackExpanded);
+ $('reference-link').setAttribute('aria-expanded',linkExpanded);
+ $('reference-url').focus();
+}
+for (const type of ['slack','link']) {
+ const button = $('reference-'+type);
+ const icon = referenceIcon(type);
+ const plus = element('span','reference-add-plus','+');
+ plus.setAttribute('aria-hidden','true');
+ button.append(icon,plus);
+ button.onclick = () => toggleReferenceComposer(type);
+}
+$('cancel-reference').onclick = () => {
+ const button = $('reference-'+referenceType);
+ closeReferenceComposer();
+ button.focus();
+};
+function addReference() {
+ try {
+  const value = $('reference-url').value;
+  const details = parseReferenceUrl(value);
+  if (referenceType === 'slack' && details.type !== 'slack') throw new Error('Paste a Slack message or thread link.');
+  const duplicate = selectedReferences.some(reference => reference.url === details.url);
+  if (duplicate) throw new Error('This reference is already linked to the task.');
+  const label = $('reference-title').value;
+  const title = label.trim();
+  selectedReferences.push({url:details.url,title});
+  const button = $('reference-'+referenceType);
+  closeReferenceComposer();
+  renderReferences();
+  button.focus();
+  return true;
+ } catch(error) {
+  $('reference-error').textContent = error.message;
+  $('reference-error').hidden = false;
+  return false;
+ }
+}
+$('add-reference').onclick = addReference;
+function referenceKeydown(event) {
+ if (event.key === 'Escape') {
+  event.preventDefault();
+  event.stopPropagation();
+  const button = $('reference-'+referenceType);
+  closeReferenceComposer();
+  button.focus();
+  return;
+ }
+ if (event.key !== 'Enter') return;
+ event.preventDefault();
+ addReference();
+}
+$('reference-url').onkeydown = referenceKeydown;
+$('reference-title').onkeydown = referenceKeydown;
 function issueSource(issue) {
  const section = element('div','issue-source');
  const heading = element('h3','',issue.title); const link = linkNode(issue.url,issue.repository+' #'+issue.number+' ↗');
@@ -424,6 +652,85 @@ function issueSource(issue) {
  const body = element('pre','issue-body',issue.body || 'No description.');
  section.append(heading,link,meta,body); return section;
 }
+function renderTaskAsana(task) {
+ const container = $('task-asana');
+ container.replaceChildren();
+ container.hidden = Boolean(task && task.asana) === false;
+ if (container.hidden) return;
+ const link = linkNode(task.asana.url,'Open in Asana ↗');
+ link.onclick = async event => {
+  event.preventDefault();
+  try { await api.openLink(task.asana.url); }
+  catch(error) { notify(error.message); }
+ };
+ const ownership = element('p','form-note','Owned by Asana. Edit the title and description in Asana.');
+ const date = new Date(task.asana.syncedAt);
+ const checkedAt = date.toLocaleString();
+ const checked = element('p','form-note','Last synced '+checkedAt);
+ const refresh = element('button','','Save and refresh from Asana');
+ refresh.type = 'button';
+ refresh.onclick = async () => {
+  const valid = $('task-form').reportValidity();
+  if (valid === false) return;
+  const saved = await saveTask(false);
+  if (saved) {
+   const prompt = asanaRefreshPrompt(task.asana.gid);
+   await requestAgent(prompt);
+  }
+ };
+ container.append(link,ownership,checked,refresh);
+ if (task.asana.syncError) {
+  const error = element('p','asana-sync-error','Refresh needs attention: '+task.asana.syncError);
+  error.setAttribute('role','status');
+  container.append(error);
+ }
+}
+
+let asanaStatus = 'backlog';
+function openAsana(projectId,statusId) {
+ const firstProject = state.projects[0];
+ const target = projectId || (firstProject ? firstProject.id : '');
+ fillOptions('asana-project',state.projects,target);
+ asanaStatus = statusId || 'backlog';
+ $('asana-url').value = '';
+ $('asana-error').hidden = true;
+ const linked = state.tasks.some(task => task.asana);
+ $('link-asana').disabled = asanaSupported === false || state.projects.length === 0;
+ $('refresh-asana').disabled = asanaSupported === false || linked === false;
+ $('schedule-asana').disabled = asanaSupported === false || linked === false || Boolean(boardUrl) === false;
+ $('asana-support').textContent = asanaSupported ? '' : 'Update the shared board Site to the latest TaskBoard API to enable Asana links.';
+ $('asana-manager').showModal();
+}
+$('open-asana').onclick = () => openAsana(selectedProject,'backlog');
+$('open-asana-import').onclick = () => openAsana($('task-project').value,$('task-status').value);
+$('close-asana').onclick = () => $('asana-manager').close();
+$('connect-asana').onclick = async () => {
+ $('asana-manager').close();
+ await requestAgent('Check whether the Asana plugin is installed and connected. Use plugin discovery to help me install/connect it if needed. If connected, verify it with a read-only account or task read. Do not modify Asana or import tickets yet.');
+};
+$('asana-link-form').onsubmit = async event => {
+ event.preventDefault();
+ try {
+  const prompt = asanaLinkPrompt($('asana-url').value,$('asana-project').value,asanaStatus);
+  await api.message(prompt);
+  $('asana-manager').close();
+  if ($('editor').open && editingTask === null) $('editor').close();
+  notify('Requested Asana link in chat.');
+ } catch(error) {
+  $('asana-error').textContent = error.message;
+  $('asana-error').hidden = false;
+ }
+};
+$('refresh-asana').onclick = async () => {
+ const prompt = asanaRefreshPrompt();
+ $('asana-manager').close();
+ await requestAgent(prompt);
+};
+$('schedule-asana').onclick = async () => {
+ const prompt = asanaSchedulePrompt(boardUrl);
+ $('asana-manager').close();
+ await requestAgent(prompt);
+};
 function renderTaskIssue(task) {
  const container = $('task-issue'); container.replaceChildren(); container.hidden = task === null || task.issue === null;
  if (container.hidden) return;
@@ -446,6 +753,8 @@ function clearIssuePreview() {
  issueRequest += 1; selectedIssue = null; issueResults = [];
  $('issue-preview').hidden = true; $('issue-preview').replaceChildren(); $('issue-results').replaceChildren(); $('confirm-issue-import').disabled = true;
 }
+const githubImportIcon = githubIcon();
+$('open-issue-import').append(githubImportIcon);
 $('open-issue-import').onclick = () => {
  clearIssuePreview(); issueBusy = false; $('search-issues').disabled = false;
  fillOptions('issue-project',state.projects,$('task-project').value);
@@ -626,6 +935,7 @@ function boardBusy() {
  return saving || dragged !== null || draggedColumn !== null || draggedProject !== null || document.querySelector('dialog[open]') !== null;
 }
 function receive(data,manual = false) {
+ asanaSupported = data.features?.includes('asana') === true;
  chatCatalog = data.chatCatalog; chatsUpdatedAt = data.chatsUpdatedAt;
  if ($('editor').open) renderChatPicker();
  if (boardBusy() || (failed && manual === false)) return false;
@@ -636,10 +946,14 @@ function receive(data,manual = false) {
   failed = false;
   document.body.classList.remove('save-error');
   $('save-status').textContent = 'All changes saved';
- } else if (data.revision === revision) return true;
+ } else if (data.revision === revision && data.importedTaskId === undefined) return true;
  state = data.state; revision = data.revision;
  if (projectFor(selectedProject) === undefined) selectedProject = null;
  render();
+ if (data.importedTaskId) {
+  const imported = state.tasks.find(task => task.id === data.importedTaskId);
+  if (imported && imported.asana) openTask(imported,imported.projectId,imported.statusId);
+ }
  return true;
 }
 async function refreshBoard(manual) {

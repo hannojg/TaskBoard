@@ -19724,6 +19724,111 @@ function date4(params) {
 // src/server/issue-schema.mjs
 var issueSchema = external_exports.object({ url: external_exports.string().url(), repository: external_exports.string(), number: external_exports.number().int().positive(), title: external_exports.string(), body: external_exports.string(), state: external_exports.enum(["open", "closed"]), labels: external_exports.array(external_exports.string()), updatedAt: external_exports.string(), fetchedAt: external_exports.string() });
 
+// src/references.js
+function parseReferenceUrl(value) {
+  let url2;
+  try {
+    url2 = new URL(value);
+  } catch {
+    throw new Error("Enter a complete web link, such as https://example.com.");
+  }
+  if (url2.protocol !== "https:" && url2.protocol !== "http:") throw new Error("References must use an https:// or http:// link.");
+  if (url2.username || url2.password) throw new Error("Reference links cannot contain sign-in credentials.");
+  const slack = url2.hostname.endsWith(".slack.com");
+  const message = slack ? url2.pathname.match(/^\/archives\/([CGD][A-Z0-9]+)\/p(\d{7,})\/?$/) : null;
+  if (message === null) return { type: "link", url: url2.href };
+  const channelId = message[1];
+  const digits = message[2];
+  const timestamp = digits.slice(0, -6) + "." + digits.slice(-6);
+  const parent = url2.searchParams.get("thread_ts");
+  const messageTs = parent === null ? timestamp : parent;
+  if (/^\d+\.\d{6}$/.test(messageTs) === false) throw new Error("The Slack link has an invalid thread timestamp.");
+  const permalink = messageTs.replace(".", "");
+  url2.protocol = "https:";
+  url2.pathname = "/archives/" + channelId + "/p" + permalink;
+  url2.search = "";
+  url2.hash = "";
+  return { type: "slack", url: url2.href, channelId, messageTs };
+}
+
+// src/server/reference-schema.mjs
+var urlTextSchema = external_exports.string();
+var trimmedUrlSchema = urlTextSchema.trim();
+var referenceUrlSchema = trimmedUrlSchema.transform((value, ctx) => {
+  try {
+    const reference = parseReferenceUrl(value);
+    return reference.url;
+  } catch (error62) {
+    ctx.addIssue({ code: "custom", message: error62.message });
+    return external_exports.NEVER;
+  }
+});
+var titleTextSchema = external_exports.string();
+var trimmedTitleSchema = titleTextSchema.trim();
+var boundedTitleSchema = trimmedTitleSchema.max(200);
+var titleSchema = boundedTitleSchema.default("");
+var referenceSchema = external_exports.object({ url: referenceUrlSchema, title: titleSchema });
+var referenceListSchema = external_exports.array(referenceSchema);
+var referencesSchema = referenceListSchema.superRefine((references, ctx) => {
+  const urls = /* @__PURE__ */ new Set();
+  for (const reference of references) {
+    if (urls.has(reference.url)) ctx.addIssue({ code: "custom", message: "This reference is already linked to the task." });
+    urls.add(reference.url);
+  }
+});
+
+// src/asana.js
+function asanaTaskAddress(value) {
+  let url2;
+  try {
+    url2 = new URL(value);
+  } catch {
+    throw new Error("Paste a complete Asana task URL.");
+  }
+  const modern = /^\/1\/\d+\/(?:project\/\d+\/)?task\/(\d+)\/?$/.exec(url2.pathname);
+  const legacy = /^\/0\/\d+\/(\d+)(?:\/f)?\/?$/.exec(url2.pathname);
+  const match = modern || legacy;
+  if (url2.protocol !== "https:" || url2.hostname !== "app.asana.com" || url2.port || url2.username || url2.password || match === null) throw new Error("Choose an Asana task link from app.asana.com.");
+  url2.search = "";
+  url2.hash = "";
+  return { gid: match[1], url: url2.href };
+}
+
+// src/server/asana-schema.mjs
+var gidSchema = external_exports.string().regex(/^\d+$/, "An Asana task GID must contain only digits.");
+var dateSchema = external_exports.iso.datetime({ offset: true });
+var addressSchema = external_exports.object({ gid: gidSchema, url: external_exports.string() });
+function checkAddress(source, ctx) {
+  try {
+    const address = asanaTaskAddress(source.url);
+    if (address.gid !== source.gid) ctx.addIssue({ code: "custom", message: "The Asana task URL does not match its GID." });
+  } catch (error62) {
+    ctx.addIssue({ code: "custom", message: error62.message });
+  }
+}
+var asanaSourceSchema = addressSchema.extend({ modifiedAt: dateSchema, syncedAt: dateSchema, syncError: external_exports.string().max(500).default("") }).superRefine(checkAddress);
+var asanaTaskSchema = addressSchema.extend({ title: external_exports.string().min(1), description: external_exports.string(), modifiedAt: dateSchema }).superRefine(checkAddress);
+var asanaTasksSchema = external_exports.array(asanaTaskSchema).max(100).superRefine((tasks, ctx) => {
+  const seen = /* @__PURE__ */ new Set();
+  for (const task of tasks) {
+    if (seen.has(task.gid)) ctx.addIssue({ code: "custom", message: "Duplicate Asana task GID." });
+    seen.add(task.gid);
+  }
+});
+var asanaFailuresSchema = external_exports.array(external_exports.object({ gid: gidSchema, message: external_exports.string().trim().min(1).max(500) })).max(100);
+var asanaSyncSchema = external_exports.object({ tasks: asanaTasksSchema, failures: asanaFailuresSchema.default([]) }).superRefine((input2, ctx) => {
+  const gids = /* @__PURE__ */ new Set();
+  for (const task of input2.tasks) gids.add(task.gid);
+  for (const failure2 of input2.failures) {
+    if (gids.has(failure2.gid)) ctx.addIssue({ code: "custom", message: "An Asana task can appear only once in a refresh." });
+    gids.add(failure2.gid);
+  }
+});
+function applyAsanaSource(task, source, syncedAt) {
+  const address = asanaTaskAddress(source.url);
+  return { ...task, title: source.title, description: source.description, asana: { ...address, modifiedAt: source.modifiedAt, syncedAt, syncError: "" } };
+}
+
 // src/column-order.js
 var statusIds = ["backlog", "todo", "progress", "review", "blocked", "done"];
 
@@ -19740,7 +19845,13 @@ var chatCatalogSchema = external_exports.array(external_exports.object({ threadI
 // src/server/schemas.mjs
 var bindingSchema = external_exports.object({ deviceId: external_exports.string(), path: external_exports.string(), codexId: external_exports.string(), hostId: external_exports.string() });
 var projectSchema = external_exports.object({ id: external_exports.string().min(1), name: external_exports.string().trim().min(1).max(80), repo: external_exports.string(), path: external_exports.string(), codexId: external_exports.string(), hostId: external_exports.string().default("local"), bindings: external_exports.array(bindingSchema).default([]) });
-var taskSchema = external_exports.object({ id: external_exports.string().min(1), title: external_exports.string().trim().min(1).max(200), description: external_exports.string(), priority: external_exports.enum(["None", "Low", "Medium", "High"]), due: external_exports.string(), projectId: external_exports.string(), statusId: external_exports.enum(["backlog", "todo", "progress", "review", "blocked", "done"]), chats: external_exports.array(chatSchema), issue: issueSchema.nullable().default(null) });
+var taskSchema = external_exports.object({ id: external_exports.string().min(1), title: external_exports.string().min(1), description: external_exports.string(), priority: external_exports.enum(["None", "Low", "Medium", "High"]), due: external_exports.string(), projectId: external_exports.string(), statusId: external_exports.enum(["backlog", "todo", "progress", "review", "blocked", "done"]), chats: external_exports.array(chatSchema), references: referencesSchema.default([]), issue: issueSchema.nullable().default(null), asana: asanaSourceSchema.nullable().default(null) }).superRefine((task, ctx) => {
+  if (task.asana && task.issue) ctx.addIssue({ code: "custom", message: "An Asana-owned ticket cannot also be a GitHub import." });
+  if (task.asana === null) {
+    const title = task.title.trim();
+    if (title.length === 0 || title.length > 200) ctx.addIssue({ code: "custom", message: "Task names must contain between 1 and 200 characters." });
+  }
+});
 var boardSchema = external_exports.object({ version: external_exports.literal(3), projects: external_exports.array(projectSchema), tasks: external_exports.array(taskSchema), statusOrder: external_exports.array(external_exports.enum(statusIds)).length(6).refine((order) => new Set(order).size === 6, { message: "Status order must include each status once" }).default(() => [...statusIds]) }).superRefine((board, ctx) => {
   const projects = /* @__PURE__ */ new Set();
   for (const project of board.projects) {
@@ -19749,9 +19860,14 @@ var boardSchema = external_exports.object({ version: external_exports.literal(3)
   }
   const tasks = /* @__PURE__ */ new Set();
   const issues = /* @__PURE__ */ new Set();
+  const asanaTasks = /* @__PURE__ */ new Set();
   for (const task of board.tasks) {
     if (tasks.has(task.id)) ctx.addIssue({ code: "custom", message: "Duplicate task ID" });
     tasks.add(task.id);
+    if (task.asana) {
+      if (asanaTasks.has(task.asana.gid)) ctx.addIssue({ code: "custom", message: "This Asana task is already linked." });
+      asanaTasks.add(task.asana.gid);
+    }
     if (task.issue) {
       const key = task.issue.url.toLowerCase();
       if (issues.has(key)) ctx.addIssue({ code: "custom", message: "This GitHub issue is already imported" });
@@ -19851,7 +19967,8 @@ function sharedBoard(state, current, deviceId, deviceName) {
   });
   const tasks = state.tasks.map((task) => {
     const chats = task.chats.map((chat) => chat.deviceId ? chat : { ...chat, deviceId, deviceName });
-    return { ...task, chats };
+    const title = task.asana ? task.title : task.title.trim();
+    return { ...task, title, chats };
   });
   return { ...state, projects, tasks };
 }
@@ -19866,15 +19983,33 @@ async function read(db, deviceId, bucket) {
   const chatMap = device ? JSON.parse(device.chats) : {};
   const chatValues = Object.values(chatMap);
   const chats = chatValues.map((value) => JSON.parse(value));
-  return { state: scopeBoard(state, deviceId), revision: row.revision, catalog: projects, chatCatalog: chats, catalogUpdatedAt: device ? device.projects_updated_at : null, chatsUpdatedAt: device ? device.chats_updated_at : null, deviceId };
+  return { state: scopeBoard(state, deviceId), revision: row.revision, catalog: projects, chatCatalog: chats, catalogUpdatedAt: device ? device.projects_updated_at : null, chatsUpdatedAt: device ? device.chats_updated_at : null, deviceId, features: ["references", "asana"] };
 }
-async function save(db, input2, deviceId, deviceName, bucket) {
-  const state = boardSchema.parse(input2.state);
+async function save(db, input2, deviceId, deviceName, bucket, sourceWrite = false) {
+  let state = boardSchema.parse(input2.state);
   const revision = revisionSchema.parse(input2.revision);
   const row = await boardRow(db);
   if (row.revision !== revision) return json2({ error: conflict }, 409);
   const decoded = JSON.parse(row.data);
   const current = boardSchema.parse(decoded);
+  for (const task of current.tasks) {
+    const incoming = input2.state.tasks.find((item) => item.id === task.id);
+    if (task.references.length > 0 && incoming && incoming.references === void 0) return json2({ error: "Update the TaskBoard plugin before editing tasks with references." }, 400);
+  }
+  if (sourceWrite === false) {
+    const tasks = [];
+    for (const task of state.tasks) {
+      const previous = current.tasks.find((item) => item.id === task.id);
+      if (previous && previous.asana) {
+        if (task.asana && task.asana.gid !== previous.asana.gid) return json2({ error: "An Asana ticket cannot change its source." }, 400);
+        tasks.push({ ...task, title: previous.title, description: previous.description, asana: previous.asana, issue: null });
+      } else {
+        if (task.asana) return json2({ error: "Link Asana tickets through taskboard_import_asana." }, 400);
+        tasks.push(task);
+      }
+    }
+    state = { ...state, tasks };
+  }
   const shared = sharedBoard(state, current, deviceId, deviceName);
   const validated = boardSchema.parse(shared);
   const stored = await storeImages(validated, bucket);
@@ -19884,6 +20019,50 @@ async function save(db, input2, deviceId, deviceName, bucket) {
   if (result.meta.changes !== 1) return json2({ error: conflict }, 409);
   const saved = await read(db, deviceId, bucket);
   return json2(saved);
+}
+async function importAsana(db, input2, deviceId, deviceName, bucket) {
+  const source = asanaTaskSchema.parse(input2.source);
+  const current = await read(db, deviceId, bucket);
+  const duplicate = current.state.tasks.find((task2) => task2.asana && task2.asana.gid === source.gid);
+  if (duplicate) return json2({ ...current, importedTaskId: duplicate.id, duplicate: true });
+  const id = crypto.randomUUID();
+  const now = /* @__PURE__ */ new Date();
+  const syncedAt = now.toISOString();
+  const local = { id, projectId: input2.projectId, statusId: input2.statusId, priority: "None", due: "", chats: [], references: [], issue: null };
+  const task = applyAsanaSource(local, source, syncedAt);
+  current.state.tasks.push(task);
+  const response = await save(db, { state: current.state, revision: input2.revision }, deviceId, deviceName, bucket, true);
+  if (response.ok === false) return response;
+  const saved = await response.json();
+  return json2({ ...saved, importedTaskId: id, duplicate: false });
+}
+async function syncAsana(db, input2, deviceId, deviceName, bucket) {
+  const updates = asanaSyncSchema.parse(input2);
+  const current = await read(db, deviceId, bucket);
+  const revision = revisionSchema.parse(input2.revision);
+  if (current.revision !== revision) return json2({ error: conflict }, 409);
+  const sources = /* @__PURE__ */ new Map();
+  for (const task of current.state.tasks) {
+    if (task.asana) sources.set(task.asana.gid, task);
+  }
+  const now = /* @__PURE__ */ new Date();
+  const syncedAt = now.toISOString();
+  for (const source of updates.tasks) {
+    const task = sources.get(source.gid);
+    if (task === void 0) return json2({ error: "The Asana task is no longer linked. Read the board again." }, 400);
+    const incomingTime = Date.parse(source.modifiedAt);
+    const savedTime = Date.parse(task.asana.modifiedAt);
+    if (incomingTime < savedTime) return json2({ error: "The Asana result is older than the saved source. Fetch the task again." }, 409);
+    const updated = applyAsanaSource(task, source, syncedAt);
+    Object.assign(task, updated);
+  }
+  for (const failure2 of updates.failures) {
+    const task = sources.get(failure2.gid);
+    if (task === void 0) return json2({ error: "The Asana task is no longer linked. Read the board again." }, 400);
+    task.asana.syncError = failure2.message;
+  }
+  if (updates.tasks.length === 0 && updates.failures.length === 0) return json2(current);
+  return save(db, { state: current.state, revision }, deviceId, deviceName, bucket, true);
 }
 async function syncProjects(db, projects, deviceId, deviceName) {
   const parsed = catalogSchema.parse(projects);
@@ -19920,6 +20099,8 @@ async function handleBoardRequest(request, db, bucket) {
     if (request.method !== "POST") return json2({ error: "Method not allowed." }, 405);
     const input2 = await request.json();
     if (input2.operation === "save") return await save(db, input2, deviceId, deviceName, bucket);
+    if (input2.operation === "asana_import") return await importAsana(db, input2, deviceId, deviceName, bucket);
+    if (input2.operation === "asana_sync") return await syncAsana(db, input2, deviceId, deviceName, bucket);
     if (input2.operation === "projects") await syncProjects(db, input2.projects, deviceId, deviceName);
     else if (input2.operation === "chats") await syncChats(db, input2.chats, deviceId, deviceName);
     else if (input2.operation === "import") {

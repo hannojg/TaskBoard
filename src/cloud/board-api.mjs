@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { boardSchema,catalogSchema } from '../server/schemas.mjs';
 import { chatCatalogSchema,chatKey } from '../server/chats.mjs';
 import { storeImages,loadImages } from './images.mjs';
+import { asanaTaskSchema,asanaSyncSchema,applyAsanaSource } from '../server/asana-schema.mjs';
 
 const revisionSchema = z.number().int().nonnegative();
 const deviceSchema = z.string().uuid();
@@ -40,7 +41,8 @@ function sharedBoard(state,current,deviceId,deviceName) {
  });
  const tasks = state.tasks.map(task => {
   const chats = task.chats.map(chat => chat.deviceId ? chat : {...chat,deviceId,deviceName});
-  return {...task,chats};
+  const title = task.asana ? task.title : task.title.trim();
+  return {...task,title,chats};
  });
  return {...state,projects,tasks};
 }
@@ -56,16 +58,34 @@ async function read(db,deviceId,bucket) {
  const chatMap = device ? JSON.parse(device.chats) : {};
  const chatValues = Object.values(chatMap);
  const chats = chatValues.map(value => JSON.parse(value));
- return {state:scopeBoard(state,deviceId),revision:row.revision,catalog:projects,chatCatalog:chats,catalogUpdatedAt:device ? device.projects_updated_at : null,chatsUpdatedAt:device ? device.chats_updated_at : null,deviceId};
+ return {state:scopeBoard(state,deviceId),revision:row.revision,catalog:projects,chatCatalog:chats,catalogUpdatedAt:device ? device.projects_updated_at : null,chatsUpdatedAt:device ? device.chats_updated_at : null,deviceId,features:['references','asana']};
 }
 
-async function save(db,input,deviceId,deviceName,bucket) {
- const state = boardSchema.parse(input.state);
+async function save(db,input,deviceId,deviceName,bucket,sourceWrite = false) {
+ let state = boardSchema.parse(input.state);
  const revision = revisionSchema.parse(input.revision);
  const row = await boardRow(db);
  if (row.revision !== revision) return json({error:conflict},409);
  const decoded = JSON.parse(row.data);
  const current = boardSchema.parse(decoded);
+ for (const task of current.tasks) {
+  const incoming = input.state.tasks.find(item => item.id === task.id);
+  if (task.references.length > 0 && incoming && incoming.references === undefined) return json({error:'Update the TaskBoard plugin before editing tasks with references.'},400);
+ }
+ if (sourceWrite === false) {
+  const tasks = [];
+  for (const task of state.tasks) {
+   const previous = current.tasks.find(item => item.id === task.id);
+   if (previous && previous.asana) {
+    if (task.asana && task.asana.gid !== previous.asana.gid) return json({error:'An Asana ticket cannot change its source.'},400);
+    tasks.push({...task,title:previous.title,description:previous.description,asana:previous.asana,issue:null});
+   } else {
+    if (task.asana) return json({error:'Link Asana tickets through taskboard_import_asana.'},400);
+    tasks.push(task);
+   }
+  }
+  state = {...state,tasks};
+ }
  const shared = sharedBoard(state,current,deviceId,deviceName);
  const validated = boardSchema.parse(shared);
  const stored = await storeImages(validated,bucket);
@@ -75,6 +95,52 @@ async function save(db,input,deviceId,deviceName,bucket) {
  if (result.meta.changes !== 1) return json({error:conflict},409);
  const saved = await read(db,deviceId,bucket);
  return json(saved);
+}
+
+async function importAsana(db,input,deviceId,deviceName,bucket) {
+ const source = asanaTaskSchema.parse(input.source);
+ const current = await read(db,deviceId,bucket);
+ const duplicate = current.state.tasks.find(task => task.asana && task.asana.gid === source.gid);
+ if (duplicate) return json({...current,importedTaskId:duplicate.id,duplicate:true});
+ const id = crypto.randomUUID();
+ const now = new Date();
+ const syncedAt = now.toISOString();
+ const local = {id,projectId:input.projectId,statusId:input.statusId,priority:'None',due:'',chats:[],references:[],issue:null};
+ const task = applyAsanaSource(local,source,syncedAt);
+ current.state.tasks.push(task);
+ const response = await save(db,{state:current.state,revision:input.revision},deviceId,deviceName,bucket,true);
+ if (response.ok === false) return response;
+ const saved = await response.json();
+ return json({...saved,importedTaskId:id,duplicate:false});
+}
+
+async function syncAsana(db,input,deviceId,deviceName,bucket) {
+ const updates = asanaSyncSchema.parse(input);
+ const current = await read(db,deviceId,bucket);
+ const revision = revisionSchema.parse(input.revision);
+ if (current.revision !== revision) return json({error:conflict},409);
+ const sources = new Map();
+ for (const task of current.state.tasks) {
+  if (task.asana) sources.set(task.asana.gid,task);
+ }
+ const now = new Date();
+ const syncedAt = now.toISOString();
+ for (const source of updates.tasks) {
+  const task = sources.get(source.gid);
+  if (task === undefined) return json({error:'The Asana task is no longer linked. Read the board again.'},400);
+  const incomingTime = Date.parse(source.modifiedAt);
+  const savedTime = Date.parse(task.asana.modifiedAt);
+  if (incomingTime < savedTime) return json({error:'The Asana result is older than the saved source. Fetch the task again.'},409);
+  const updated = applyAsanaSource(task,source,syncedAt);
+  Object.assign(task,updated);
+ }
+ for (const failure of updates.failures) {
+  const task = sources.get(failure.gid);
+  if (task === undefined) return json({error:'The Asana task is no longer linked. Read the board again.'},400);
+  task.asana.syncError = failure.message;
+ }
+ if (updates.tasks.length === 0 && updates.failures.length === 0) return json(current);
+ return save(db,{state:current.state,revision},deviceId,deviceName,bucket,true);
 }
 
 async function syncProjects(db,projects,deviceId,deviceName) {
@@ -115,6 +181,8 @@ export async function handleBoardRequest(request,db,bucket) {
   if (request.method !== 'POST') return json({error:'Method not allowed.'},405);
   const input = await request.json();
   if (input.operation === 'save') return await save(db,input,deviceId,deviceName,bucket);
+  if (input.operation === 'asana_import') return await importAsana(db,input,deviceId,deviceName,bucket);
+  if (input.operation === 'asana_sync') return await syncAsana(db,input,deviceId,deviceName,bucket);
   if (input.operation === 'projects') await syncProjects(db,input.projects,deviceId,deviceName);
   else if (input.operation === 'chats') await syncChats(db,input.chats,deviceId,deviceName);
   else if (input.operation === 'import') {
