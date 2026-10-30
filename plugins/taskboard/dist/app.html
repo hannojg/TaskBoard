@@ -1577,10 +1577,30 @@ aside > button,
     border-color: #253a54;
   }
 }
+#description-editor .md-image {
+  display: inline-block;
+  max-width: 100%;
+  padding: 8px 0;
+  vertical-align: middle;
+}
+#description-editor .md-image img {
+  display: block;
+  max-width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+#description-editor .md-image-error {
+  color: #bb7171;
+  font-size: 12px;
+}
+#description-status:empty {
+  display: none;
+}
 </style></head><body>
 <div id="connection-status" role="status"><span id="connection-message">Connecting to Codex…</span><button id="retry-connection" hidden>Try again</button></div><header><a class="brand" href="./">tasks</a><span class="private">Personal workspace</span><span class="avatar">HG</span></header>
 <section id="connection-setup" hidden aria-labelledby="setup-title"><div class="setup-card"><span class="eyebrow">WELCOME TO TASKBOARD</span><h1 id="setup-title">Your projects, together.</h1><p>Create a private board for your projects, or connect to one from another Mac.</p><div id="setup-choices"><div class="setup-option"><button id="create-board" class="primary">Create a new board</button><p>Codex sets up private online storage using Sites.</p></div><div class="setup-option"><button id="choose-connection-file">Connect to an existing board</button><p>Choose the private connection file from your connected Mac.</p></div></div><div id="creation-progress" hidden><p id="creation-message" role="status"></p><p class="setup-note">Codex is setting up your board in this chat. Keep TaskBoard open; it will connect when setup finishes.</p><button id="continue-creation">Continue setup in chat</button></div><p id="setup-error" role="alert" hidden></p><p class="setup-note">Your connection stays private on this Mac. You can use a different Codex account.</p></div></section><div class="workspace" id="workspace" hidden><aside><button id="overview" class="nav-item">All projects</button><div class="sidebar-label">PROJECTS <button id="sidebar-add" class="icon" aria-label="New project">＋</button></div><nav id="projects"></nav><button id="sync-projects" class="nav-item">Sync Codex projects</button><div class="sidebar-meta"><button id="refresh-board" title="Load the latest saved changes from other open panels">Refresh board</button><span class="save-indicator" role="status"><span class="saved-dot"></span><span id="save-status">All changes saved</span></span></div></aside><main><div class="toolbar"><div><h1 id="view-title">All projects</h1><div id="project-links"></div></div><div class="tools"><label class="search">⌕ <input id="search" placeholder="Search tasks…" aria-label="Search tasks"></label><div class="board-actions"><button class="primary" id="new-task">＋ New task</button><button id="add-project">＋ New project</button></div></div></div><div class="viewbar"><div class="tabs"><button id="by-project">Projects</button><button id="by-status">Status</button></div><span id="total"></span><button id="edit-project" hidden>Edit project</button></div><div id="board" class="board"></div></main></div>
-<dialog id="editor"><form id="task-form"><div class="dialog-top"><span class="eyebrow">TASK</span><button type="button" class="icon" id="close">×</button></div><button type="button" id="open-issue-import">Import from GitHub…</button><section id="task-issue" hidden></section><label>Task name<input id="title" required maxlength="200"></label><div class="markdown-field"><label id="description-label">Description</label><div id="description-editor"></div><textarea id="description" hidden aria-hidden="true" tabindex="-1"></textarea></div><div class="fields"><label>Project<select id="task-project"></select></label><label>Status<select id="task-status"></select></label></div><div class="fields"><label>Priority<select id="priority"><option>None</option><option>Low</option><option>Medium</option><option>High</option></select></label><label>Due date<input type="date" id="due"></label></div><section class="chat-picker" aria-label="Linked chats"><div class="chat-heading"><span>Linked chats</span><button type="button" id="sync-chats">Sync chats</button><button type="button" id="reload-chats">Reload list</button></div><div id="selected-chats"></div><button type="button" id="create-agent-chat" class="create-agent-chat">＋ Create agent chat</button><p class="form-note chat-draft-note">Saves this ticket and opens a draft with its context. Send it when you’re ready; the agent will then link the chat to this ticket.</p><input id="chat-search" type="search" placeholder="Search chats…" aria-label="Search chats"><label class="chat-scope"><input type="checkbox" id="all-chats">Show chats from all projects</label><div id="chat-options"></div><p id="chat-status" class="form-note" role="status"></p></section><p id="task-save-error" role="alert" hidden></p><div class="dialog-actions"><button type="button" id="delete-task" class="danger">Delete task</button><button class="primary" type="submit">Save task</button></div></form></dialog>
+<dialog id="editor"><form id="task-form"><div class="dialog-top"><span class="eyebrow">TASK</span><button type="button" class="icon" id="close">×</button></div><button type="button" id="open-issue-import">Import from GitHub…</button><section id="task-issue" hidden></section><label>Task name<input id="title" required maxlength="200"></label><div class="markdown-field"><label id="description-label">Description</label><div id="description-editor"></div><textarea id="description" hidden aria-hidden="true" tabindex="-1"></textarea><p id="description-status" class="form-note" role="status"></p></div><div class="fields"><label>Project<select id="task-project"></select></label><label>Status<select id="task-status"></select></label></div><div class="fields"><label>Priority<select id="priority"><option>None</option><option>Low</option><option>Medium</option><option>High</option></select></label><label>Due date<input type="date" id="due"></label></div><section class="chat-picker" aria-label="Linked chats"><div class="chat-heading"><span>Linked chats</span><button type="button" id="sync-chats">Sync chats</button><button type="button" id="reload-chats">Reload list</button></div><div id="selected-chats"></div><div id="task-create-chat" hidden><button type="button" id="create-agent-chat" class="create-agent-chat">＋ Create agent chat</button><p class="form-note chat-draft-note">Saves this ticket and opens a draft with its context. Send it when you’re ready; the agent will then link the chat to this ticket.</p></div><input id="chat-search" type="search" placeholder="Search chats…" aria-label="Search chats"><label class="chat-scope"><input type="checkbox" id="all-chats">Show chats from all projects</label><div id="chat-options"></div><p id="chat-status" class="form-note" role="status"></p></section><p id="task-save-error" role="alert" hidden></p><div class="dialog-actions"><button type="button" id="delete-task" class="danger">Delete task</button><button class="primary" type="submit">Save task</button></div></form></dialog>
 <dialog id="task-chats" aria-labelledby="task-chats-title"><div class="dialog-top"><span class="eyebrow">LINKED CHATS</span><button type="button" class="icon" id="close-task-chats" aria-label="Close linked chats">×</button></div><h2 id="task-chats-title"></h2><div id="task-chat-links"></div></dialog><dialog id="issue-import"><form id="issue-import-form"><div class="dialog-top"><span class="eyebrow">IMPORT FROM GITHUB</span><button type="button" id="close-issue-import" class="icon">×</button></div><label>Project<select id="issue-project"></select></label><label>Repository<input id="issue-repository" placeholder="owner/repo or GitHub repository URL"></label><label>Issue URL or search<input id="issue-query" placeholder="Paste an issue URL or enter search words"></label><button id="search-issues" type="submit">Search / Preview</button><p id="issue-message" role="status" class="form-note"></p><div id="issue-results"></div><section id="issue-preview" hidden></section><button type="button" class="primary" id="confirm-issue-import" disabled>Import task</button></form></dialog><dialog id="project-editor"><form id="project-form"><div class="dialog-top"><span class="eyebrow">PROJECT</span><button type="button" class="icon" id="close-project">×</button></div><label>Name<input id="project-name" required maxlength="80" placeholder="Project name"></label><label>Git repository URL<input id="project-repo" type="url" placeholder="https://github.com/…"></label><label>Local project folder<input id="project-path" placeholder="/Users/…/Documents/Github/…"></label><label>Codex project<select id="codex-project"></select></label><input id="project-codex" type="hidden"><input id="project-host" type="hidden" value="local"><p id="project-repo-status" class="form-note" role="status"></p><p class="form-note">Use “Sync Codex projects” to refresh this picker through Codex. Linking a project does not change task statuses.</p><div class="dialog-actions"><button type="button" class="danger" id="delete-project">Delete empty project</button><button class="primary" id="save-project">Save project</button></div></form></dialog><div id="toast" role="status"></div><script>(() => {
   var __defProp = Object.defineProperty;
   var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -25598,6 +25618,11 @@ container holding the app. Specify either width or maxWidth, and either height o
     return "url:" + chat.url;
   }
 
+  // src/description.js
+  function descriptionText(markdown2) {
+    return markdown2.replace(/!\[((?:\\.|[^\]\\])*)\]\(data:image\/[\w.+-]+;base64,[A-Za-z0-9+/]+={0,2}\)/g, (_image, alt) => alt ? "[Image: " + alt + "]" : "[Image]");
+  }
+
   // src/task-chat.js
   function chatUrl(chat) {
     if (chat.url) {
@@ -25631,7 +25656,9 @@ container holding the app. Specify either width or maxWidth, and either height o
     if (project.repo) lines.push("Repository: " + project.repo);
     if (task.description) {
       const heading2 = task.issue ? "## Local notes" : "## Description";
-      lines.push("", heading2, "", task.description);
+      const description = descriptionText(task.description);
+      lines.push("", heading2, "", description);
+      if (description !== task.description) lines.push("", "Images are attached to this ticket. Read the latest ticket through TaskBoard to retrieve their image data.");
     }
     if (task.issue) {
       lines.push("", "## GitHub issue (source context)", "", task.issue.title, task.issue.url, "State: " + task.issue.state, "", task.issue.body);
@@ -25641,840 +25668,6 @@ container holding the app. Specify either width or maxWidth, and either height o
     url2.searchParams.set("prompt", prompt);
     if (project.path) url2.searchParams.set("path", project.path);
     return url2.href;
-  }
-
-  // src/ui/board.js
-  function startBoard(initialData, api2) {
-    const $ = (id2) => document.getElementById(id2);
-    const statuses = [{ id: "backlog", name: "Backlog" }, { id: "todo", name: "To do" }, { id: "progress", name: "In progress" }, { id: "review", name: "Waiting for review" }, { id: "blocked", name: "Blocked" }, { id: "done", name: "Done" }];
-    let state = initialData.state;
-    let revision = initialData.revision;
-    let catalog = initialData.catalog;
-    let chatCatalog = initialData.chatCatalog;
-    let chatsUpdatedAt = initialData.chatsUpdatedAt;
-    const deviceId = initialData.deviceId;
-    let selectedChats = [];
-    let saving = false;
-    let failed = false;
-    let selectedProject = null;
-    let view = "projects";
-    let editingTask = null;
-    let editingProject = null;
-    let projectLookup = 0;
-    let dragged = null;
-    let draggedColumn = null;
-    let toastTimer;
-    let issueResults = [];
-    let selectedIssue = null;
-    let issueStatus = "backlog";
-    let issueRequest = 0;
-    let issueBusy = false;
-    let openingChat = false;
-    function element(tag, className, text) {
-      const node2 = document.createElement(tag);
-      node2.className = className;
-      if (text) node2.textContent = text;
-      return node2;
-    }
-    function notify(message2) {
-      $("toast").textContent = message2;
-      $("toast").style.display = "block";
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => {
-        $("toast").style.display = "none";
-      }, 2600);
-    }
-    async function persist() {
-      if (saving || failed) return false;
-      saving = true;
-      document.body.classList.add("saving");
-      $("save-status").textContent = "Saving\u2026";
-      try {
-        const result = await api2.save(state, revision);
-        state = result.state;
-        revision = result.revision;
-        catalog = result.catalog;
-        $("save-status").textContent = "All changes saved";
-        render();
-        return true;
-      } catch (error62) {
-        failed = true;
-        document.body.classList.add("save-error");
-        $("save-status").textContent = error62.message + " Use Refresh board to load the latest saved version.";
-        notify(error62.message);
-        return false;
-      } finally {
-        saving = false;
-        document.body.classList.remove("saving");
-      }
-    }
-    function projectFor(id2) {
-      return state.projects.find((project) => project.id === id2);
-    }
-    function statusFor(id2) {
-      return statuses.find((status2) => status2.id === id2);
-    }
-    function selectProject(id2) {
-      selectedProject = id2;
-      render();
-    }
-    function linkNode(url2, label) {
-      const node2 = element("a", "project-link", label);
-      const parsed = new URL(url2);
-      if (parsed.protocol === "https:" || parsed.protocol === "http:" || parsed.protocol === "codex:") {
-        node2.href = url2;
-        node2.target = "_blank";
-        node2.rel = "noopener noreferrer";
-      }
-      return node2;
-    }
-    function render() {
-      const project = projectFor(selectedProject);
-      $("view-title").textContent = project ? project.name : "All projects";
-      $("edit-project").hidden = project === void 0;
-      $("overview").classList.toggle("active", selectedProject === null);
-      $("by-project").hidden = Boolean(project);
-      $("by-status").textContent = project ? "Board" : "Status";
-      $("by-project").classList.toggle("active", view === "projects");
-      $("by-status").classList.toggle("active", Boolean(project) || view === "status");
-      $("project-links").replaceChildren();
-      if (project) {
-        if (project.repo) {
-          const link = linkNode(project.repo, "Repository \u2197");
-          $("project-links").append(link);
-        }
-        if (project.path) {
-          const path = element("span", "local-path", project.path);
-          $("project-links").append(path);
-        }
-      }
-      $("projects").replaceChildren();
-      for (const item of state.projects) {
-        const button = element("button", "nav-item", item.name);
-        button.classList.toggle("active", item.id === selectedProject);
-        button.onclick = () => selectProject(item.id);
-        $("projects").append(button);
-      }
-      const board = $("board");
-      board.replaceChildren();
-      const query = $("search").value.toLowerCase();
-      const visible = state.tasks.filter((task) => {
-        const text = task.title + " " + task.description;
-        const lower = text.toLowerCase();
-        return (selectedProject === null || task.projectId === selectedProject) && lower.includes(query);
-      });
-      const taskLabel = visible.length === 1 ? " task" : " tasks";
-      $("total").textContent = visible.length + taskLabel;
-      if (state.projects.length === 0) {
-        const empty = element("div", "board-empty", "Create a project to start adding tasks.");
-        board.append(empty);
-        return;
-      }
-      const groupByProject = selectedProject === null && view === "projects";
-      const orderedStatuses = state.statusOrder.map((id2) => statusFor(id2));
-      const groups = groupByProject ? state.projects : orderedStatuses;
-      for (const group of groups) {
-        const section = element("section", "column");
-        section.setAttribute("aria-label", group.name);
-        const head = element("div", "column-head");
-        const title = element("button", "column-open", group.name);
-        title.onclick = () => {
-          if (groupByProject) selectProject(group.id);
-        };
-        title.title = groupByProject ? "Open project board" : group.name;
-        const tasks = visible.filter((task) => groupByProject ? task.projectId === group.id : task.statusId === group.id);
-        const countText = String(tasks.length);
-        const count2 = element("span", "count", countText);
-        const grip = element("button", "column-grip", "\u283F");
-        grip.type = "button";
-        grip.draggable = true;
-        grip.setAttribute("aria-label", "Reorder " + group.name);
-        grip.title = "Drag to reorder. Alt + Left or Right also moves this column.";
-        grip.ondragstart = (event) => {
-          event.stopPropagation();
-          draggedColumn = { id: group.id, groupByProject };
-          event.dataTransfer.effectAllowed = "move";
-          event.dataTransfer.setData("text/plain", group.id);
-          section.classList.add("column-dragging");
-        };
-        grip.ondragend = () => {
-          draggedColumn = null;
-          for (const node2 of board.children) node2.classList.remove("column-dragging", "column-drop-before", "column-drop-after");
-        };
-        grip.onkeydown = (event) => {
-          if (event.altKey === false || event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-          event.preventDefault();
-          const index = groups.findIndex((item) => item.id === group.id);
-          const next = event.key === "ArrowRight" ? index + 1 : index - 1;
-          if (next < 0 || next >= groups.length) return;
-          reorderColumn(group.id, groups[next].id, groupByProject, event.key === "ArrowRight");
-        };
-        head.append(grip, title, count2);
-        if (groupByProject) {
-          const edit = element("button", "icon", "\u22EF");
-          edit.setAttribute("aria-label", "Edit " + group.name);
-          edit.onclick = () => openProject(group);
-          head.append(edit);
-          section.ondblclick = (event) => {
-            if (event.target.closest(".card, .add-task, .icon, .column-grip")) return;
-            selectProject(group.id);
-          };
-        }
-        const cards = element("div", "cards");
-        for (const task of tasks) {
-          const card = taskCard(task, group, groupByProject);
-          cards.append(card);
-        }
-        if (tasks.length === 0) {
-          const empty = element("div", "empty", query ? "No matching tasks" : "No tasks");
-          cards.append(empty);
-        }
-        section.ondragover = (event) => {
-          if (draggedColumn === null && dragged === null) return;
-          event.preventDefault();
-          event.dataTransfer.dropEffect = "move";
-          if (draggedColumn) {
-            const bounds = section.getBoundingClientRect();
-            const after = event.clientX > bounds.left + bounds.width / 2;
-            section.classList.toggle("column-drop-before", after === false);
-            section.classList.toggle("column-drop-after", after);
-          } else section.classList.add("drop-target");
-        };
-        section.ondragleave = (event) => {
-          if (section.contains(event.relatedTarget) === false) section.classList.remove("drop-target", "column-drop-before", "column-drop-after");
-        };
-        section.ondrop = (event) => {
-          event.preventDefault();
-          if (draggedColumn) {
-            const bounds = section.getBoundingClientRect();
-            const after = event.clientX > bounds.left + bounds.width / 2;
-            const moved = draggedColumn;
-            draggedColumn = null;
-            reorderColumn(moved.id, group.id, groupByProject, after);
-          } else if (dragged) moveTask(dragged, group, groupByProject, null);
-        };
-        const add = element("button", "add-task", "\uFF0B Add task");
-        add.onclick = () => openTask(null, groupByProject ? group.id : selectedProject, groupByProject ? "backlog" : group.id);
-        section.append(head, add, cards);
-        board.append(section);
-      }
-    }
-    function reorderColumn(id2, targetId, groupByProject, after) {
-      if (id2 === targetId) return;
-      if (groupByProject) state.projects = reorderColumns(state.projects, id2, targetId, after);
-      else {
-        const ordered = state.statusOrder.map((statusId) => statusFor(statusId));
-        const moved = reorderColumns(ordered, id2, targetId, after);
-        state.statusOrder = moved.map((status2) => status2.id);
-      }
-      persist();
-    }
-    function moveTask(id2, group, groupByProject, beforeId) {
-      const task = state.tasks.find((item) => item.id === id2);
-      if (groupByProject) task.projectId = group.id;
-      else task.statusId = group.id;
-      state.tasks = state.tasks.filter((item) => item.id !== id2);
-      const position = state.tasks.findIndex((item) => item.id === beforeId);
-      if (position >= 0) state.tasks.splice(position, 0, task);
-      else state.tasks.push(task);
-      persist();
-    }
-    function taskCard(task, group, groupByProject) {
-      const card = element("article", "card");
-      card.draggable = true;
-      card.tabIndex = 0;
-      card.setAttribute("aria-label", task.title + "; edit task");
-      const header = element("div", "card-header");
-      const heading2 = element("h2", "", task.title);
-      const actions = element("div", "card-chat-actions");
-      if (task.chats.length > 0) {
-        const open2 = chatAction("", "Open linked chat", () => openTaskChats(task));
-        const icon = chatIcon();
-        open2.append(icon);
-        actions.append(open2);
-      }
-      const create2 = chatAction("\uFF0B", "Create agent chat", () => createTaskChat(task));
-      const project = projectFor(task.projectId);
-      configureCreateChat(create2, project);
-      header.append(heading2, actions);
-      actions.append(create2);
-      card.append(header);
-      if (task.issue) {
-        const link = linkNode(task.issue.url, "GitHub #" + task.issue.number);
-        link.className = "issue-badge";
-        link.title = "Open " + task.issue.repository + " #" + task.issue.number + " on GitHub";
-        link.setAttribute("aria-label", link.title);
-        link.draggable = false;
-        const icon = githubIcon();
-        link.prepend(icon);
-        link.onclick = async (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          try {
-            await api2.openLink(task.issue.url);
-          } catch (error62) {
-            notify(error62.message);
-          }
-        };
-        link.ondragstart = (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-        };
-        card.append(link);
-      }
-      if (task.description) {
-        const description = element("p", "", task.description);
-        card.append(description);
-      }
-      const meta4 = element("div", "meta");
-      const context = groupByProject ? statusFor(task.statusId) : projectFor(task.projectId);
-      const contextName = context ? context.name : "";
-      if (contextName) {
-        const badge = element("span", "priority", contextName);
-        meta4.append(badge);
-      }
-      if (task.priority !== "None") {
-        const badge = element("span", "priority " + task.priority, task.priority);
-        meta4.append(badge);
-      }
-      if (task.chats.length > 0) {
-        const label = task.chats.length === 1 ? "1 chat" : task.chats.length + " chats";
-        const chats = chatAction(label, "Open linked chat", () => openTaskChats(task));
-        const icon = chatIcon();
-        chats.prepend(icon);
-        chats.className = "priority chat-badge";
-        meta4.append(chats);
-      }
-      if (task.due) {
-        const date5 = /* @__PURE__ */ new Date(task.due + "T12:00:00");
-        const formatted = date5.toLocaleDateString(void 0, { month: "short", day: "numeric" });
-        const due = element("span", "", formatted);
-        meta4.append(due);
-      }
-      card.append(meta4);
-      card.onclick = () => openTask(task, task.projectId, task.statusId);
-      card.onkeydown = (event) => {
-        if (event.target === card && (event.key === "Enter" || event.key === " ")) {
-          event.preventDefault();
-          openTask(task, task.projectId, task.statusId);
-        }
-      };
-      card.ondblclick = (event) => event.stopPropagation();
-      card.ondragstart = (event) => {
-        dragged = task.id;
-        event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setData("text/plain", task.id);
-        card.classList.add("dragging");
-      };
-      card.ondragend = () => {
-        dragged = null;
-        render();
-      };
-      card.ondrop = (event) => {
-        if (draggedColumn) return;
-        event.preventDefault();
-        event.stopPropagation();
-        if (dragged && dragged !== task.id) moveTask(dragged, group, groupByProject, task.id);
-      };
-      return card;
-    }
-    function githubIcon() {
-      const namespace = "http://www.w3.org/2000/svg";
-      const icon = document.createElementNS(namespace, "svg");
-      icon.setAttribute("class", "github-icon");
-      icon.setAttribute("viewBox", "0 0 16 16");
-      icon.setAttribute("fill", "currentColor");
-      icon.setAttribute("aria-hidden", "true");
-      const mark = document.createElementNS(namespace, "path");
-      mark.setAttribute("d", "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 3.86c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z");
-      icon.append(mark);
-      return icon;
-    }
-    function chatIcon() {
-      const namespace = "http://www.w3.org/2000/svg";
-      const icon = document.createElementNS(namespace, "svg");
-      icon.setAttribute("class", "chat-icon");
-      icon.setAttribute("viewBox", "0 0 24 24");
-      icon.setAttribute("fill", "none");
-      icon.setAttribute("stroke", "currentColor");
-      icon.setAttribute("stroke-width", "1.75");
-      icon.setAttribute("stroke-linecap", "round");
-      icon.setAttribute("stroke-linejoin", "round");
-      icon.setAttribute("aria-hidden", "true");
-      const outline = document.createElementNS(namespace, "path");
-      outline.setAttribute("d", "M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z");
-      icon.append(outline);
-      return icon;
-    }
-    function chatAction(label, title, action) {
-      const button = element("button", "card-chat-action", label);
-      button.type = "button";
-      button.title = title;
-      button.setAttribute("aria-label", title);
-      button.onclick = (event) => {
-        event.stopPropagation();
-        action();
-      };
-      button.ondragstart = (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-      };
-      return button;
-    }
-    function configureCreateChat(button, project) {
-      const local = project.hostId === "local" && project.path.length > 0;
-      button.disabled = local === false;
-      button.title = local ? "Open a new draft with this ticket\u2019s context" : "Draft chats can only be opened for local projects.";
-    }
-    async function openChat(chat) {
-      if (chat.threadId && chat.deviceId && chat.deviceId !== deviceId) {
-        notify("Open this chat on " + chat.deviceName + ".");
-        return;
-      }
-      try {
-        const url2 = chatUrl(chat);
-        await api2.openLink(url2);
-      } catch (error62) {
-        notify(error62.message);
-      }
-    }
-    function openTaskChats(task) {
-      if (task.chats.length === 1) {
-        openChat(task.chats[0]);
-        return;
-      }
-      $("task-chats-title").textContent = task.title;
-      $("task-chat-links").replaceChildren();
-      for (const chat of task.chats) {
-        const button = element("button", "task-chat-link", chat.title);
-        const icon = chatIcon();
-        button.prepend(icon);
-        button.type = "button";
-        button.onclick = () => openChat(chat);
-        $("task-chat-links").append(button);
-      }
-      $("task-chats").showModal();
-    }
-    async function createTaskChat(task) {
-      if (openingChat) return;
-      openingChat = true;
-      try {
-        const project = projectFor(task.projectId);
-        const status2 = statusFor(task.statusId);
-        const url2 = taskChatUrl(task, project, status2.name);
-        await api2.openLink(url2);
-      } catch (error62) {
-        notify(error62.message);
-      } finally {
-        openingChat = false;
-      }
-    }
-    $("close-task-chats").onclick = () => $("task-chats").close();
-    function fillOptions(id2, items, value) {
-      $(id2).replaceChildren();
-      for (const item of items) {
-        const option = element("option", "", item.name);
-        option.value = item.id;
-        $(id2).append(option);
-      }
-      $(id2).value = value;
-    }
-    function openTask(task, projectId, statusId) {
-      if (state.projects.length === 0) {
-        openProject(null);
-        return;
-      }
-      editingTask = task ? task.id : null;
-      $("task-save-error").hidden = true;
-      $("open-issue-import").hidden = task !== null;
-      $("description-label").textContent = task && task.issue ? "Local notes" : "Description";
-      renderTaskIssue(task);
-      $("title").value = task ? task.title : "";
-      $("description").value = task ? task.description : "";
-      $("priority").value = task ? task.priority : "None";
-      $("due").value = task ? task.due : "";
-      selectedChats = task ? [...task.chats] : [];
-      $("chat-search").value = "";
-      $("all-chats").checked = false;
-      const targetProject = projectId || state.projects[0].id;
-      fillOptions("task-project", state.projects, targetProject);
-      fillOptions("task-status", statuses, statusId || "backlog");
-      renderChatPicker();
-      $("delete-task").hidden = task === null;
-      $("editor").showModal();
-      $("title").focus();
-    }
-    async function saveTask(createChat) {
-      const title = $("title").value.trim();
-      if (title.length === 0) return;
-      const existing = state.tasks.find((item) => item.id === editingTask);
-      const task = { ...existing, id: editingTask || crypto.randomUUID(), title, description: $("description").value.trim(), priority: $("priority").value, due: $("due").value, projectId: $("task-project").value, statusId: $("task-status").value, chats: selectedChats };
-      const index = state.tasks.findIndex((item) => item.id === editingTask);
-      if (index >= 0) state.tasks[index] = task;
-      else state.tasks.push(task);
-      const saved = await persist();
-      if (saved === false) {
-        $("task-save-error").textContent = $("save-status").textContent;
-        $("task-save-error").hidden = false;
-        return;
-      }
-      $("editor").close();
-      if (createChat) await createTaskChat(task);
-    }
-    $("task-form").onsubmit = (event) => {
-      event.preventDefault();
-      saveTask(false);
-    };
-    $("create-agent-chat").onclick = () => {
-      const valid = $("task-form").reportValidity();
-      if (valid) saveTask(true);
-    };
-    function issueSource(issue2) {
-      const section = element("div", "issue-source");
-      const heading2 = element("h3", "", issue2.title);
-      const link = linkNode(issue2.url, issue2.repository + " #" + issue2.number + " \u2197");
-      const meta4 = element("p", "form-note", issue2.state + " \xB7 " + issue2.labels.join(", "));
-      const body = element("pre", "issue-body", issue2.body || "No description.");
-      section.append(heading2, link, meta4, body);
-      return section;
-    }
-    function renderTaskIssue(task) {
-      const container = $("task-issue");
-      container.replaceChildren();
-      container.hidden = task === null || task.issue === null;
-      if (container.hidden) return;
-      const source = element("details", "");
-      const summary = element("summary", "", "GitHub #" + task.issue.number + " \xB7 " + task.issue.state);
-      const details = issueSource(task.issue);
-      source.append(summary, details);
-      const refresh = element("button", "", "Refresh from GitHub");
-      refresh.type = "button";
-      refresh.onclick = async () => {
-        refresh.disabled = true;
-        const taskId = task.id;
-        try {
-          const data2 = await api2.refreshIssue(taskId, revision);
-          state = data2.state;
-          revision = data2.revision;
-          render();
-          if ($("editor").open && editingTask === taskId) {
-            const updated = state.tasks.find((item) => item.id === taskId);
-            renderTaskIssue(updated);
-          }
-          notify("GitHub details refreshed. Local edits preserved.");
-        } catch (error62) {
-          notify(error62.message);
-        } finally {
-          refresh.disabled = false;
-        }
-      };
-      container.append(source, refresh);
-    }
-    function clearIssuePreview() {
-      issueRequest += 1;
-      selectedIssue = null;
-      issueResults = [];
-      $("issue-preview").hidden = true;
-      $("issue-preview").replaceChildren();
-      $("issue-results").replaceChildren();
-      $("confirm-issue-import").disabled = true;
-    }
-    $("open-issue-import").onclick = () => {
-      clearIssuePreview();
-      issueBusy = false;
-      $("search-issues").disabled = false;
-      fillOptions("issue-project", state.projects, $("task-project").value);
-      const project = projectFor($("issue-project").value);
-      $("issue-repository").value = project.repo;
-      $("issue-query").value = "";
-      $("issue-message").textContent = "";
-      issueStatus = $("task-status").value;
-      $("issue-import").showModal();
-    };
-    $("close-issue-import").onclick = () => {
-      issueRequest += 1;
-      $("issue-import").close();
-    };
-    $("issue-project").onchange = () => {
-      const project = projectFor($("issue-project").value);
-      $("issue-repository").value = project.repo;
-      clearIssuePreview();
-    };
-    $("issue-query").oninput = clearIssuePreview;
-    $("issue-repository").oninput = clearIssuePreview;
-    $("issue-import-form").onsubmit = async (event) => {
-      event.preventDefault();
-      if (issueBusy) return;
-      clearIssuePreview();
-      const request = issueRequest;
-      issueBusy = true;
-      $("search-issues").disabled = true;
-      $("issue-message").textContent = "Reading GitHub\u2026";
-      try {
-        const data2 = await api2.searchIssues($("issue-repository").value, $("issue-query").value);
-        if (request !== issueRequest || $("issue-import").open === false) return;
-        issueResults = data2.issueResults;
-        $("issue-message").textContent = issueResults.length ? "Choose an issue to preview." : "No matching issues.";
-        issueResults.forEach((issue2, index) => {
-          const choice = element("button", "issue-result", "#" + issue2.number + " " + issue2.title);
-          choice.type = "button";
-          choice.onclick = () => selectIssue(index);
-          $("issue-results").append(choice);
-        });
-        if (issueResults.length === 1) selectIssue(0);
-      } catch (error62) {
-        if (request === issueRequest) $("issue-message").textContent = error62.message;
-      } finally {
-        issueBusy = false;
-        $("search-issues").disabled = false;
-      }
-    };
-    function selectIssue(index) {
-      selectedIssue = issueResults[index];
-      const preview = issueSource(selectedIssue);
-      $("issue-preview").replaceChildren(preview);
-      $("issue-preview").hidden = false;
-      const existing = state.tasks.find((task) => task.issue && task.issue.url.toLowerCase() === selectedIssue.url.toLowerCase());
-      $("confirm-issue-import").textContent = existing ? "Open existing task" : "Import task";
-      $("confirm-issue-import").disabled = false;
-    }
-    $("confirm-issue-import").onclick = async () => {
-      if (selectedIssue === null || issueBusy) return;
-      issueBusy = true;
-      $("confirm-issue-import").disabled = true;
-      $("search-issues").disabled = true;
-      try {
-        const data2 = await api2.importIssue(selectedIssue.url, $("issue-project").value, issueStatus, revision);
-        state = data2.state;
-        revision = data2.revision;
-        render();
-        $("issue-import").close();
-        $("editor").close();
-        const task = state.tasks.find((item) => item.id === data2.importedTaskId);
-        openTask(task, task.projectId, task.statusId);
-        notify(data2.duplicate ? "Opened the existing imported task." : "Issue imported. GitHub is unchanged.");
-      } catch (error62) {
-        $("issue-message").textContent = error62.message;
-      } finally {
-        issueBusy = false;
-        $("confirm-issue-import").disabled = false;
-        $("search-issues").disabled = false;
-      }
-    };
-    $("delete-task").onclick = () => {
-      state.tasks = state.tasks.filter((task) => task.id !== editingTask);
-      persist();
-      $("editor").close();
-    };
-    $("close").onclick = () => $("editor").close();
-    $("new-task").onclick = () => openTask(null, selectedProject, "backlog");
-    function openProject(project) {
-      projectLookup += 1;
-      $("save-project").disabled = false;
-      $("project-repo-status").textContent = "";
-      editingProject = project ? project.id : null;
-      for (const [id2, key] of [["project-name", "name"], ["project-repo", "repo"], ["project-path", "path"], ["project-codex", "codexId"]]) $(id2).value = project ? project[key] : "";
-      $("delete-project").hidden = project === null;
-      const occupied = state.tasks.some((task) => task.projectId === editingProject);
-      $("delete-project").disabled = occupied;
-      $("delete-project").title = occupied ? "Move tasks to another project first." : "";
-      fillCatalog(project);
-      $("project-editor").showModal();
-      $("project-name").focus();
-    }
-    $("project-form").onsubmit = (event) => {
-      event.preventDefault();
-      const name2 = $("project-name").value.trim();
-      if (name2.length === 0) return;
-      const project = { id: editingProject || crypto.randomUUID(), name: name2, repo: $("project-repo").value.trim(), path: $("project-path").value.trim(), codexId: $("project-codex").value.trim(), hostId: $("project-host").value };
-      const index = state.projects.findIndex((item) => item.id === editingProject);
-      if (index >= 0) state.projects[index] = project;
-      else state.projects.push(project);
-      persist();
-      $("project-editor").close();
-    };
-    $("delete-project").onclick = () => {
-      state.projects = state.projects.filter((project) => project.id !== editingProject);
-      if (selectedProject === editingProject) selectedProject = null;
-      persist();
-      $("project-editor").close();
-    };
-    $("close-project").onclick = () => $("project-editor").close();
-    $("add-project").onclick = () => openProject(null);
-    $("sidebar-add").onclick = () => openProject(null);
-    $("edit-project").onclick = () => {
-      const project = projectFor(selectedProject);
-      openProject(project);
-    };
-    $("overview").onclick = () => selectProject(null);
-    $("by-project").onclick = () => {
-      view = "projects";
-      render();
-    };
-    $("by-status").onclick = () => {
-      view = "status";
-      render();
-    };
-    $("search").oninput = render;
-    function fillCatalog(project) {
-      const selectedId = project ? project.codexId : "";
-      const selectedHost = project ? project.hostId || "local" : "local";
-      $("project-host").value = selectedHost;
-      $("codex-project").replaceChildren();
-      const none4 = element("option", "", "No Codex project");
-      none4.value = "";
-      $("codex-project").append(none4);
-      catalog.forEach((item, index) => {
-        const label = item.label + " \u2014 " + item.path;
-        const option = element("option", "", label);
-        option.value = String(index);
-        option.selected = item.projectId === selectedId && item.hostId === selectedHost;
-        $("codex-project").append(option);
-      });
-      if (selectedId && catalog.some((item) => item.projectId === selectedId && item.hostId === selectedHost) === false) {
-        const retained = element("option", "", "Linked project (refresh catalog to update)");
-        retained.value = "retained";
-        retained.selected = true;
-        $("codex-project").append(retained);
-      }
-    }
-    $("codex-project").onchange = async () => {
-      projectLookup += 1;
-      const request = projectLookup;
-      const value = $("codex-project").value;
-      if (value === "retained") return;
-      const project = value === "" ? null : catalog[Number(value)];
-      $("project-codex").value = project ? project.projectId : "";
-      $("project-host").value = project ? project.hostId : "local";
-      $("save-project").disabled = false;
-      $("project-repo-status").textContent = "";
-      if (project === null) return;
-      $("project-name").value = project.label;
-      $("project-path").value = project.path;
-      $("project-repo").value = "";
-      $("save-project").disabled = true;
-      $("project-repo-status").textContent = "Reading Git repository\u2026";
-      try {
-        const details = await api2.resolveProject(project.projectId, project.hostId);
-        if (request !== projectLookup) return;
-        $("project-repo").value = details.repo;
-        const messages = { "found": "", "no-origin": "This project has no Git origin configured.", "not-a-repository": "This project is not a Git repository.", "remote-host": "The Git URL must be entered manually for a project on another host." };
-        $("project-repo-status").textContent = messages[details.repoStatus];
-      } catch (error62) {
-        if (request !== projectLookup) return;
-        $("project-repo-status").textContent = error62.message;
-      } finally {
-        if (request === projectLookup) $("save-project").disabled = false;
-      }
-    };
-    async function requestAgent(text) {
-      try {
-        await api2.message(text);
-        notify("Requested in chat.");
-      } catch (error62) {
-        notify(error62.message);
-      }
-    }
-    $("sync-projects").onclick = () => requestAgent("Use the taskboard skill to refresh the Codex project catalog with list_projects and taskboard_sync_projects. Do not create board projects or change existing tasks.");
-    function renderChatPicker() {
-      $("selected-chats").replaceChildren();
-      for (const chat of selectedChats) {
-        const row = element("div", "selected-chat");
-        const elsewhere = chat.threadId && chat.deviceId && chat.deviceId !== deviceId;
-        const label = elsewhere ? chat.title + " \xB7 " + chat.deviceName : chat.title;
-        const title = element("button", "selected-chat-open", label);
-        const icon = chatIcon();
-        title.prepend(icon);
-        title.disabled = Boolean(elsewhere);
-        title.type = "button";
-        title.title = "Open " + chat.title;
-        title.onclick = () => openChat(chat);
-        const remove2 = element("button", "icon", "\xD7");
-        remove2.type = "button";
-        remove2.setAttribute("aria-label", "Unlink " + chat.title);
-        remove2.onclick = () => {
-          const key = chatKey(chat);
-          selectedChats = selectedChats.filter((item) => chatKey(item) !== key);
-          renderChatPicker();
-        };
-        row.append(title, remove2);
-        $("selected-chats").append(row);
-      }
-      const project = projectFor($("task-project").value);
-      configureCreateChat($("create-agent-chat"), project);
-      const scoped = project && project.codexId && $("all-chats").checked === false;
-      const query = $("chat-search").value.toLowerCase();
-      const choices2 = chatCatalog.filter((chat) => {
-        const title = chat.title.toLowerCase();
-        const matchesProject = scoped ? chat.projectId === project.codexId && chat.hostId === project.hostId : true;
-        return matchesProject && title.includes(query);
-      });
-      $("chat-options").replaceChildren();
-      for (const chat of choices2) {
-        const label = element("label", "chat-choice");
-        const checkbox = element("input", "");
-        checkbox.type = "checkbox";
-        const key = chatKey(chat);
-        checkbox.checked = selectedChats.some((item) => chatKey(item) === key);
-        checkbox.onchange = () => {
-          if (checkbox.checked) selectedChats.push({ ...chat });
-          else selectedChats = selectedChats.filter((item) => chatKey(item) !== key);
-          renderChatPicker();
-        };
-        const title = element("span", "", chat.title);
-        label.append(checkbox, title);
-        $("chat-options").append(label);
-      }
-      if (choices2.length === 0) {
-        const empty = element("p", "form-note", query ? "No matching chats." : "No synced chats in this view.");
-        $("chat-options").append(empty);
-      }
-      const scope = scoped ? "This project" : "All projects";
-      const date5 = chatsUpdatedAt ? new Date(chatsUpdatedAt) : null;
-      const refreshed = date5 ? " \xB7 Synced " + date5.toLocaleString() : " \xB7 Not synced yet";
-      $("chat-status").textContent = scope + refreshed + ". Sync chats asks Codex to refresh recent chat titles; Reload list loads the results.";
-    }
-    $("chat-search").oninput = renderChatPicker;
-    $("all-chats").onchange = renderChatPicker;
-    $("task-project").onchange = renderChatPicker;
-    $("sync-chats").onclick = () => requestAgent("Use the taskboard skill to refresh the recent Codex chat catalog with list_threads and taskboard_sync_chats. Include confirmed chat ID, host, exact title and project ID. Do not modify ticket links or send messages to any chat.");
-    $("reload-chats").onclick = async () => {
-      try {
-        const data2 = await api2.read();
-        chatCatalog = data2.chatCatalog;
-        chatsUpdatedAt = data2.chatsUpdatedAt;
-        renderChatPicker();
-      } catch (error62) {
-        $("chat-status").textContent = error62.message;
-      }
-    };
-    $("refresh-board").onclick = async () => {
-      try {
-        const result = await api2.read();
-        state = result.state;
-        revision = result.revision;
-        catalog = result.catalog;
-        failed = false;
-        document.body.classList.remove("save-error");
-        $("save-status").textContent = "All changes saved";
-        render();
-      } catch (error62) {
-        notify(error62.message);
-      }
-    };
-    render();
-    return (data2) => {
-      chatCatalog = data2.chatCatalog;
-      chatsUpdatedAt = data2.chatsUpdatedAt;
-      if ($("editor").open) renderChatPicker();
-      if (saving || failed || document.querySelector("dialog[open]")) return;
-      if (data2.revision < revision) return;
-      state = data2.state;
-      revision = data2.revision;
-      catalog = data2.catalog;
-      if (projectFor(selectedProject) === void 0) selectedProject = null;
-      render();
-    };
   }
 
   // node_modules/@marijn/find-cluster-break/src/index.js
@@ -51584,6 +50777,214 @@ container holding the app. Specify either width or maxWidth, and either height o
     }
   });
 
+  // src/ui/markdown-images.js
+  function imageUrl(value) {
+    const bare = value.startsWith("<") ? value.slice(1, -1) : value;
+    const unescaped = bare.replace(/\\([\\()[\]])/g, "$1");
+    try {
+      const url2 = new URL(unescaped);
+      if (url2.protocol === "https:" || url2.protocol === "http:") return url2.href;
+      if (url2.protocol === "data:" && /^data:image\/[\w.+-]+;base64,/i.test(unescaped)) return unescaped;
+    } catch {
+    }
+    return null;
+  }
+  function referenceName(value) {
+    const trimmed = value.trim();
+    const spaced = trimmed.replace(/\s+/g, " ");
+    return spaced.toLowerCase();
+  }
+  function markdownImages(state) {
+    const references = /* @__PURE__ */ new Map();
+    const nodes = [];
+    const tree = syntaxTree(state);
+    tree.iterate({ enter(cursor) {
+      const node2 = cursor.node;
+      if (node2.name === "Image") nodes.push(node2);
+      if (node2.name !== "LinkReference") return;
+      const label = node2.getChild("LinkLabel");
+      const url2 = node2.getChild("URL");
+      if (label && url2) {
+        const name2 = state.sliceDoc(label.from + 1, label.to - 1);
+        const normalized = referenceName(name2);
+        const value = state.sliceDoc(url2.from, url2.to);
+        references.set(normalized, value);
+      }
+    } });
+    const images = [];
+    for (const node2 of nodes) {
+      const marks2 = node2.getChildren("LinkMark");
+      const alt = state.sliceDoc(marks2[0].to, marks2[1].from);
+      const url2 = node2.getChild("URL");
+      let value;
+      if (url2) value = state.sliceDoc(url2.from, url2.to);
+      else {
+        const label = node2.getChild("LinkLabel");
+        const name2 = label ? state.sliceDoc(label.from + 1, label.to - 1) || alt : alt;
+        const normalized = referenceName(name2);
+        value = references.get(normalized);
+      }
+      if (value === void 0) continue;
+      const src = imageUrl(value);
+      if (src) images.push({ from: node2.from, to: node2.to, src, alt });
+    }
+    return images;
+  }
+  var ImageWidget = class extends WidgetType {
+    constructor(src, alt) {
+      super();
+      this.src = src;
+      this.alt = alt;
+    }
+    eq(other) {
+      return this.src === other.src && this.alt === other.alt;
+    }
+    toDOM(view) {
+      const wrapper = document.createElement("span");
+      wrapper.className = "md-image";
+      const image = document.createElement("img");
+      image.alt = this.alt;
+      image.src = this.src;
+      image.loading = "lazy";
+      image.referrerPolicy = "no-referrer";
+      image.draggable = false;
+      image.onload = () => view.requestMeasure();
+      image.onerror = () => {
+        image.hidden = true;
+        wrapper.textContent = this.alt ? "Could not load image: " + this.alt : "Could not load image";
+        wrapper.classList.add("md-image-error");
+        view.requestMeasure();
+      };
+      wrapper.append(image);
+      return wrapper;
+    }
+  };
+  function imageDecorations(state) {
+    const images = markdownImages(state);
+    const ranges = images.map((image) => {
+      const widget = new ImageWidget(image.src, image.alt);
+      const decoration = Decoration.replace({ widget });
+      return decoration.range(image.from, image.to);
+    });
+    return Decoration.set(ranges);
+  }
+  var imagePreviews = StateField.define({
+    create: imageDecorations,
+    update(value, transaction) {
+      const previous = syntaxTree(transaction.startState);
+      const current = syntaxTree(transaction.state);
+      return transaction.docChanged || previous !== current ? imageDecorations(transaction.state) : value;
+    },
+    provide: (field) => [
+      EditorView.decorations.from(field),
+      EditorView.atomicRanges.of((view) => {
+        return view.state.field(field);
+      })
+    ]
+  });
+  var imagePasteSession = StateField.define({
+    create: () => ({ pending: /* @__PURE__ */ new Set() }),
+    update: (value) => value
+  });
+  var startPaste = StateEffect.define();
+  var endPaste = StateEffect.define();
+  var PastingWidget = class extends WidgetType {
+    toDOM() {
+      const node2 = document.createElement("span");
+      node2.className = "md-marker";
+      node2.textContent = "Pasting image\u2026";
+      return node2;
+    }
+  };
+  var pendingImages = StateField.define({
+    create: () => Decoration.none,
+    update(value, transaction) {
+      let ranges = value.map(transaction.changes);
+      for (const effect of transaction.effects) {
+        if (effect.is(startPaste)) {
+          const { id: id2, from, to } = effect.value;
+          const widget = new PastingWidget();
+          const decoration = from === to ? Decoration.widget({ widget, id: id2, side: 1 }) : Decoration.replace({ widget, id: id2 });
+          const range = decoration.range(from, to);
+          ranges = ranges.update({ add: [range], sort: true });
+        }
+        if (effect.is(endPaste)) ranges = ranges.update({ filter: (_from, _to, value2) => value2.spec.id !== effect.value });
+      }
+      return ranges;
+    },
+    provide: (field) => EditorView.decorations.from(field)
+  });
+  function cancelImagePaste(view) {
+    const pending = view.state.field(pendingImages);
+    let id2;
+    pending.between(0, view.state.doc.length, (_from, _to, value) => {
+      id2 = value.spec.id;
+    });
+    if (id2 === void 0) return false;
+    const effect = endPaste.of(id2);
+    view.dispatch({ effects: effect });
+    return true;
+  }
+  function readImage(file2) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => {
+        const error62 = new Error("Could not paste this image. Try copying and pasting it again.");
+        reject(error62);
+      };
+      reader.readAsDataURL(file2);
+    });
+  }
+  function imagePaste(onError) {
+    const keys = keymap.of([{ key: "Mod-z", run: cancelImagePaste }]);
+    const undoPending = Prec.high(keys);
+    const handler = EditorView.domEventHandlers({ paste(event, view) {
+      const files = Array.from(event.clipboardData.files);
+      const images = files.filter((file2) => file2.type.startsWith("image/"));
+      if (images.length === 0) return false;
+      event.preventDefault();
+      onError("");
+      const session = view.state.field(imagePasteSession);
+      const id2 = crypto.randomUUID();
+      const { from, to } = view.state.selection.main;
+      const pending = startPaste.of({ id: id2, from, to });
+      view.dispatch({ effects: pending });
+      const reads = images.map((file2) => readImage(file2));
+      const reading = Promise.all(reads);
+      const inserting = reading.then((sources) => {
+        if (view.state.field(imagePasteSession) !== session) return;
+        const ranges = view.state.field(pendingImages);
+        let target;
+        ranges.between(0, view.state.doc.length, (from2, to2, value) => {
+          if (value.spec.id === id2) target = { from: from2, to: to2 };
+        });
+        if (target === void 0) return;
+        const markdown2 = sources.map((src, index) => {
+          const name2 = images[index].name || "Pasted image";
+          const alt = name2.replace(/[\\[\]\r\n]/g, " ");
+          return "![" + alt + "](" + src + ")";
+        });
+        const insert2 = markdown2.join("\n");
+        const historyBoundary = isolateHistory.of("full");
+        const done = endPaste.of(id2);
+        const current = view.state.selection.main;
+        const selection = current.from === target.from && current.to === target.to ? { anchor: target.from + insert2.length } : void 0;
+        view.dispatch({ changes: { ...target, insert: insert2 }, selection, effects: done, annotations: historyBoundary, userEvent: "input.paste" });
+      });
+      const recovering = inserting.catch((error62) => {
+        if (view.state.field(imagePasteSession) !== session) return;
+        const done = endPaste.of(id2);
+        view.dispatch({ effects: done });
+        onError(error62.message);
+      });
+      const job = recovering.finally(() => session.pending.delete(job));
+      session.pending.add(job);
+      return true;
+    } });
+    return [pendingImages, undoPending, handler];
+  }
+
   // src/ui/markdown.js
   var descriptionInput = document.getElementById("description");
   var editorContainer = document.getElementById("description-editor");
@@ -51612,13 +51013,23 @@ container holding the app. Specify either width or maxWidth, and either height o
     const empty = placeholder("Write or paste Markdown\u2026");
     const undo2 = history();
     const selection = drawSelection();
-    return EditorState.create({ doc: doc2, extensions: [language2, highlightingExtension, bindings, undo2, selection, EditorView.lineWrapping, attributes, empty, updateListener2] });
+    const paste = imagePaste((message2) => {
+      const status2 = document.getElementById("description-status");
+      status2.textContent = message2;
+    });
+    return EditorState.create({ doc: doc2, extensions: [language2, highlightingExtension, bindings, undo2, selection, imagePreviews, imagePasteSession, paste, EditorView.lineWrapping, attributes, empty, updateListener2] });
   }
   var initialState = createState(descriptionInput.value);
   var descriptionEditor = new EditorView({ state: initialState, parent: editorContainer });
+  async function descriptionImagesReady() {
+    const session = descriptionEditor.state.field(imagePasteSession);
+    while (session.pending.size > 0) await Promise.all(session.pending);
+    return descriptionEditor.state.field(imagePasteSession) === session;
+  }
   var dialog = document.getElementById("editor");
   var editorObserver = new MutationObserver(() => {
     if (dialog.open) {
+      document.getElementById("description-status").textContent = "";
       const state = createState(descriptionInput.value);
       descriptionEditor.setState(state);
       descriptionEditor.requestMeasure();
@@ -51626,8 +51037,854 @@ container holding the app. Specify either width or maxWidth, and either height o
   });
   editorObserver.observe(dialog, { attributes: true, attributeFilter: ["open"] });
 
+  // src/ui/board.js
+  function startBoard(initialData, api2) {
+    const $ = (id2) => document.getElementById(id2);
+    const statuses = [{ id: "backlog", name: "Backlog" }, { id: "todo", name: "To do" }, { id: "progress", name: "In progress" }, { id: "review", name: "Waiting for review" }, { id: "blocked", name: "Blocked" }, { id: "done", name: "Done" }];
+    let state = initialData.state;
+    let revision = initialData.revision;
+    let catalog = initialData.catalog;
+    let chatCatalog = initialData.chatCatalog;
+    let chatsUpdatedAt = initialData.chatsUpdatedAt;
+    const deviceId = initialData.deviceId;
+    let selectedChats = [];
+    let saving = false;
+    let failed = false;
+    let selectedProject = null;
+    let view = "projects";
+    let editingTask = null;
+    let editingProject = null;
+    let projectLookup = 0;
+    let dragged = null;
+    let draggedColumn = null;
+    let toastTimer;
+    let issueResults = [];
+    let selectedIssue = null;
+    let issueStatus = "backlog";
+    let issueRequest = 0;
+    let issueBusy = false;
+    let openingChat = false;
+    let savingTask = false;
+    function element(tag, className, text) {
+      const node2 = document.createElement(tag);
+      node2.className = className;
+      if (text) node2.textContent = text;
+      return node2;
+    }
+    function notify(message2) {
+      $("toast").textContent = message2;
+      $("toast").style.display = "block";
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        $("toast").style.display = "none";
+      }, 2600);
+    }
+    async function persist() {
+      if (saving || failed) return false;
+      saving = true;
+      document.body.classList.add("saving");
+      $("save-status").textContent = "Saving\u2026";
+      try {
+        const result = await api2.save(state, revision);
+        state = result.state;
+        revision = result.revision;
+        catalog = result.catalog;
+        $("save-status").textContent = "All changes saved";
+        render();
+        return true;
+      } catch (error62) {
+        failed = true;
+        document.body.classList.add("save-error");
+        $("save-status").textContent = error62.message + " Use Refresh board to load the latest saved version.";
+        notify(error62.message);
+        return false;
+      } finally {
+        saving = false;
+        document.body.classList.remove("saving");
+      }
+    }
+    function projectFor(id2) {
+      return state.projects.find((project) => project.id === id2);
+    }
+    function statusFor(id2) {
+      return statuses.find((status2) => status2.id === id2);
+    }
+    function selectProject(id2) {
+      selectedProject = id2;
+      render();
+    }
+    function linkNode(url2, label) {
+      const node2 = element("a", "project-link", label);
+      const parsed = new URL(url2);
+      if (parsed.protocol === "https:" || parsed.protocol === "http:" || parsed.protocol === "codex:") {
+        node2.href = url2;
+        node2.target = "_blank";
+        node2.rel = "noopener noreferrer";
+      }
+      return node2;
+    }
+    function render() {
+      const project = projectFor(selectedProject);
+      $("view-title").textContent = project ? project.name : "All projects";
+      $("edit-project").hidden = project === void 0;
+      $("overview").classList.toggle("active", selectedProject === null);
+      $("by-project").hidden = Boolean(project);
+      $("by-status").textContent = project ? "Board" : "Status";
+      $("by-project").classList.toggle("active", view === "projects");
+      $("by-status").classList.toggle("active", Boolean(project) || view === "status");
+      $("project-links").replaceChildren();
+      if (project) {
+        if (project.repo) {
+          const link = linkNode(project.repo, "Repository \u2197");
+          $("project-links").append(link);
+        }
+        if (project.path) {
+          const path = element("span", "local-path", project.path);
+          $("project-links").append(path);
+        }
+      }
+      $("projects").replaceChildren();
+      for (const item of state.projects) {
+        const button = element("button", "nav-item", item.name);
+        button.classList.toggle("active", item.id === selectedProject);
+        button.onclick = () => selectProject(item.id);
+        $("projects").append(button);
+      }
+      const board = $("board");
+      board.replaceChildren();
+      const query = $("search").value.toLowerCase();
+      const visible = state.tasks.filter((task) => {
+        const text = task.title + " " + task.description;
+        const lower = text.toLowerCase();
+        return (selectedProject === null || task.projectId === selectedProject) && lower.includes(query);
+      });
+      const taskLabel = visible.length === 1 ? " task" : " tasks";
+      $("total").textContent = visible.length + taskLabel;
+      if (state.projects.length === 0) {
+        const empty = element("div", "board-empty", "Create a project to start adding tasks.");
+        board.append(empty);
+        return;
+      }
+      const groupByProject = selectedProject === null && view === "projects";
+      const orderedStatuses = state.statusOrder.map((id2) => statusFor(id2));
+      const groups = groupByProject ? state.projects : orderedStatuses;
+      for (const group of groups) {
+        const section = element("section", "column");
+        section.setAttribute("aria-label", group.name);
+        const head = element("div", "column-head");
+        const title = element("button", "column-open", group.name);
+        title.onclick = () => {
+          if (groupByProject) selectProject(group.id);
+        };
+        title.title = groupByProject ? "Open project board" : group.name;
+        const tasks = visible.filter((task) => groupByProject ? task.projectId === group.id : task.statusId === group.id);
+        const countText = String(tasks.length);
+        const count2 = element("span", "count", countText);
+        const grip = element("button", "column-grip", "\u283F");
+        grip.type = "button";
+        grip.draggable = true;
+        grip.setAttribute("aria-label", "Reorder " + group.name);
+        grip.title = "Drag to reorder. Alt + Left or Right also moves this column.";
+        grip.ondragstart = (event) => {
+          event.stopPropagation();
+          draggedColumn = { id: group.id, groupByProject };
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", group.id);
+          section.classList.add("column-dragging");
+        };
+        grip.ondragend = () => {
+          draggedColumn = null;
+          for (const node2 of board.children) node2.classList.remove("column-dragging", "column-drop-before", "column-drop-after");
+        };
+        grip.onkeydown = (event) => {
+          if (event.altKey === false || event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+          event.preventDefault();
+          const index = groups.findIndex((item) => item.id === group.id);
+          const next = event.key === "ArrowRight" ? index + 1 : index - 1;
+          if (next < 0 || next >= groups.length) return;
+          reorderColumn(group.id, groups[next].id, groupByProject, event.key === "ArrowRight");
+        };
+        head.append(grip, title, count2);
+        if (groupByProject) {
+          const edit = element("button", "icon", "\u22EF");
+          edit.setAttribute("aria-label", "Edit " + group.name);
+          edit.onclick = () => openProject(group);
+          head.append(edit);
+          section.ondblclick = (event) => {
+            if (event.target.closest(".card, .add-task, .icon, .column-grip")) return;
+            selectProject(group.id);
+          };
+        }
+        const cards = element("div", "cards");
+        for (const task of tasks) {
+          const card = taskCard(task, group, groupByProject);
+          cards.append(card);
+        }
+        if (tasks.length === 0) {
+          const empty = element("div", "empty", query ? "No matching tasks" : "No tasks");
+          cards.append(empty);
+        }
+        section.ondragover = (event) => {
+          if (draggedColumn === null && dragged === null) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          if (draggedColumn) {
+            const bounds = section.getBoundingClientRect();
+            const after = event.clientX > bounds.left + bounds.width / 2;
+            section.classList.toggle("column-drop-before", after === false);
+            section.classList.toggle("column-drop-after", after);
+          } else section.classList.add("drop-target");
+        };
+        section.ondragleave = (event) => {
+          if (section.contains(event.relatedTarget) === false) section.classList.remove("drop-target", "column-drop-before", "column-drop-after");
+        };
+        section.ondrop = (event) => {
+          event.preventDefault();
+          if (draggedColumn) {
+            const bounds = section.getBoundingClientRect();
+            const after = event.clientX > bounds.left + bounds.width / 2;
+            const moved = draggedColumn;
+            draggedColumn = null;
+            reorderColumn(moved.id, group.id, groupByProject, after);
+          } else if (dragged) moveTask(dragged, group, groupByProject, null);
+        };
+        const add = element("button", "add-task", "\uFF0B Add task");
+        add.onclick = () => openTask(null, groupByProject ? group.id : selectedProject, groupByProject ? "backlog" : group.id);
+        section.append(head, add, cards);
+        board.append(section);
+      }
+    }
+    function reorderColumn(id2, targetId, groupByProject, after) {
+      if (id2 === targetId) return;
+      if (groupByProject) state.projects = reorderColumns(state.projects, id2, targetId, after);
+      else {
+        const ordered = state.statusOrder.map((statusId) => statusFor(statusId));
+        const moved = reorderColumns(ordered, id2, targetId, after);
+        state.statusOrder = moved.map((status2) => status2.id);
+      }
+      persist();
+    }
+    function moveTask(id2, group, groupByProject, beforeId) {
+      const task = state.tasks.find((item) => item.id === id2);
+      if (groupByProject) task.projectId = group.id;
+      else task.statusId = group.id;
+      state.tasks = state.tasks.filter((item) => item.id !== id2);
+      const position = state.tasks.findIndex((item) => item.id === beforeId);
+      if (position >= 0) state.tasks.splice(position, 0, task);
+      else state.tasks.push(task);
+      persist();
+    }
+    function taskCard(task, group, groupByProject) {
+      const card = element("article", "card");
+      card.draggable = true;
+      card.tabIndex = 0;
+      card.setAttribute("aria-label", task.title + "; edit task");
+      const header = element("div", "card-header");
+      const heading2 = element("h2", "", task.title);
+      const actions = element("div", "card-chat-actions");
+      if (task.chats.length > 0) {
+        const open2 = chatAction("", "Open linked chat", () => openTaskChats(task));
+        const icon = chatIcon();
+        open2.append(icon);
+        actions.append(open2);
+      }
+      const create2 = chatAction("\uFF0B", "Create agent chat", () => createTaskChat(task));
+      const project = projectFor(task.projectId);
+      configureCreateChat(create2, project);
+      header.append(heading2, actions);
+      actions.append(create2);
+      card.append(header);
+      if (task.issue) {
+        const link = linkNode(task.issue.url, "GitHub #" + task.issue.number);
+        link.className = "issue-badge";
+        link.title = "Open " + task.issue.repository + " #" + task.issue.number + " on GitHub";
+        link.setAttribute("aria-label", link.title);
+        link.draggable = false;
+        const icon = githubIcon();
+        link.prepend(icon);
+        link.onclick = async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          try {
+            await api2.openLink(task.issue.url);
+          } catch (error62) {
+            notify(error62.message);
+          }
+        };
+        link.ondragstart = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        };
+        card.append(link);
+      }
+      if (task.description) {
+        const text = descriptionText(task.description);
+        const description = element("p", "", text);
+        card.append(description);
+      }
+      const meta4 = element("div", "meta");
+      const context = groupByProject ? statusFor(task.statusId) : projectFor(task.projectId);
+      const contextName = context ? context.name : "";
+      if (contextName) {
+        const badge = element("span", "priority", contextName);
+        meta4.append(badge);
+      }
+      if (task.priority !== "None") {
+        const badge = element("span", "priority " + task.priority, task.priority);
+        meta4.append(badge);
+      }
+      if (task.chats.length > 0) {
+        const label = task.chats.length === 1 ? "1 chat" : task.chats.length + " chats";
+        const chats = chatAction(label, "Open linked chat", () => openTaskChats(task));
+        const icon = chatIcon();
+        chats.prepend(icon);
+        chats.className = "priority chat-badge";
+        meta4.append(chats);
+      }
+      if (task.due) {
+        const date5 = /* @__PURE__ */ new Date(task.due + "T12:00:00");
+        const formatted = date5.toLocaleDateString(void 0, { month: "short", day: "numeric" });
+        const due = element("span", "", formatted);
+        meta4.append(due);
+      }
+      card.append(meta4);
+      card.onclick = () => openTask(task, task.projectId, task.statusId);
+      card.onkeydown = (event) => {
+        if (event.target === card && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          openTask(task, task.projectId, task.statusId);
+        }
+      };
+      card.ondblclick = (event) => event.stopPropagation();
+      card.ondragstart = (event) => {
+        dragged = task.id;
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", task.id);
+        card.classList.add("dragging");
+      };
+      card.ondragend = () => {
+        dragged = null;
+        render();
+      };
+      card.ondrop = (event) => {
+        if (draggedColumn) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (dragged && dragged !== task.id) moveTask(dragged, group, groupByProject, task.id);
+      };
+      return card;
+    }
+    function githubIcon() {
+      const namespace = "http://www.w3.org/2000/svg";
+      const icon = document.createElementNS(namespace, "svg");
+      icon.setAttribute("class", "github-icon");
+      icon.setAttribute("viewBox", "0 0 16 16");
+      icon.setAttribute("fill", "currentColor");
+      icon.setAttribute("aria-hidden", "true");
+      const mark = document.createElementNS(namespace, "path");
+      mark.setAttribute("d", "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 3.86c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z");
+      icon.append(mark);
+      return icon;
+    }
+    function chatIcon() {
+      const namespace = "http://www.w3.org/2000/svg";
+      const icon = document.createElementNS(namespace, "svg");
+      icon.setAttribute("class", "chat-icon");
+      icon.setAttribute("viewBox", "0 0 24 24");
+      icon.setAttribute("fill", "none");
+      icon.setAttribute("stroke", "currentColor");
+      icon.setAttribute("stroke-width", "1.75");
+      icon.setAttribute("stroke-linecap", "round");
+      icon.setAttribute("stroke-linejoin", "round");
+      icon.setAttribute("aria-hidden", "true");
+      const outline = document.createElementNS(namespace, "path");
+      outline.setAttribute("d", "M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z");
+      icon.append(outline);
+      return icon;
+    }
+    function chatAction(label, title, action) {
+      const button = element("button", "card-chat-action", label);
+      button.type = "button";
+      button.title = title;
+      button.setAttribute("aria-label", title);
+      button.onclick = (event) => {
+        event.stopPropagation();
+        action();
+      };
+      button.ondragstart = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      };
+      return button;
+    }
+    function configureCreateChat(button, project) {
+      const local = project.hostId === "local" && project.path.length > 0;
+      button.disabled = local === false;
+      button.title = local ? "Open a new draft with this ticket\u2019s context" : "Draft chats can only be opened for local projects.";
+    }
+    async function openChat(chat) {
+      if (chat.threadId && chat.deviceId && chat.deviceId !== deviceId) {
+        notify("Open this chat on " + chat.deviceName + ".");
+        return;
+      }
+      try {
+        const url2 = chatUrl(chat);
+        await api2.openLink(url2);
+      } catch (error62) {
+        notify(error62.message);
+      }
+    }
+    function openTaskChats(task) {
+      if (task.chats.length === 1) {
+        openChat(task.chats[0]);
+        return;
+      }
+      $("task-chats-title").textContent = task.title;
+      $("task-chat-links").replaceChildren();
+      for (const chat of task.chats) {
+        const button = element("button", "task-chat-link", chat.title);
+        const icon = chatIcon();
+        button.prepend(icon);
+        button.type = "button";
+        button.onclick = () => openChat(chat);
+        $("task-chat-links").append(button);
+      }
+      $("task-chats").showModal();
+    }
+    async function createTaskChat(task) {
+      if (openingChat) return;
+      openingChat = true;
+      try {
+        const project = projectFor(task.projectId);
+        const status2 = statusFor(task.statusId);
+        const url2 = taskChatUrl(task, project, status2.name);
+        await api2.openLink(url2);
+      } catch (error62) {
+        notify(error62.message);
+      } finally {
+        openingChat = false;
+      }
+    }
+    $("close-task-chats").onclick = () => $("task-chats").close();
+    function fillOptions(id2, items, value) {
+      $(id2).replaceChildren();
+      for (const item of items) {
+        const option = element("option", "", item.name);
+        option.value = item.id;
+        $(id2).append(option);
+      }
+      $(id2).value = value;
+    }
+    function openTask(task, projectId, statusId) {
+      if (state.projects.length === 0) {
+        openProject(null);
+        return;
+      }
+      editingTask = task ? task.id : null;
+      $("task-create-chat").hidden = task === null;
+      $("task-save-error").hidden = true;
+      $("open-issue-import").hidden = task !== null;
+      $("description-label").textContent = task && task.issue ? "Local notes" : "Description";
+      renderTaskIssue(task);
+      $("title").value = task ? task.title : "";
+      $("description").value = task ? task.description : "";
+      $("priority").value = task ? task.priority : "None";
+      $("due").value = task ? task.due : "";
+      selectedChats = task ? [...task.chats] : [];
+      $("chat-search").value = "";
+      $("all-chats").checked = false;
+      const targetProject = projectId || state.projects[0].id;
+      fillOptions("task-project", state.projects, targetProject);
+      fillOptions("task-status", statuses, statusId || "backlog");
+      renderChatPicker();
+      $("delete-task").hidden = task === null;
+      $("editor").showModal();
+      $("title").focus();
+    }
+    async function saveTask(createChat) {
+      if (savingTask) return;
+      savingTask = true;
+      try {
+        const ready = await descriptionImagesReady();
+        if (ready === false || $("editor").open === false) return;
+        const title = $("title").value.trim();
+        if (title.length === 0) return;
+        const existing = state.tasks.find((item) => item.id === editingTask);
+        const description = $("description").value.trim();
+        const task = { ...existing, id: editingTask || crypto.randomUUID(), title, description, priority: $("priority").value, due: $("due").value, projectId: $("task-project").value, statusId: $("task-status").value, chats: selectedChats };
+        const index = state.tasks.findIndex((item) => item.id === editingTask);
+        if (index >= 0) state.tasks[index] = task;
+        else state.tasks.push(task);
+        const saved = await persist();
+        if (saved === false) {
+          $("task-save-error").textContent = $("save-status").textContent;
+          $("task-save-error").hidden = false;
+          return;
+        }
+        $("editor").close();
+        if (createChat) await createTaskChat(task);
+      } finally {
+        savingTask = false;
+      }
+    }
+    $("task-form").onsubmit = (event) => {
+      event.preventDefault();
+      saveTask(false);
+    };
+    $("create-agent-chat").onclick = () => {
+      const valid = $("task-form").reportValidity();
+      if (valid) saveTask(true);
+    };
+    function issueSource(issue2) {
+      const section = element("div", "issue-source");
+      const heading2 = element("h3", "", issue2.title);
+      const link = linkNode(issue2.url, issue2.repository + " #" + issue2.number + " \u2197");
+      const meta4 = element("p", "form-note", issue2.state + " \xB7 " + issue2.labels.join(", "));
+      const body = element("pre", "issue-body", issue2.body || "No description.");
+      section.append(heading2, link, meta4, body);
+      return section;
+    }
+    function renderTaskIssue(task) {
+      const container = $("task-issue");
+      container.replaceChildren();
+      container.hidden = task === null || task.issue === null;
+      if (container.hidden) return;
+      const source = element("details", "");
+      const summary = element("summary", "", "GitHub #" + task.issue.number + " \xB7 " + task.issue.state);
+      const details = issueSource(task.issue);
+      source.append(summary, details);
+      const refresh = element("button", "", "Refresh from GitHub");
+      refresh.type = "button";
+      refresh.onclick = async () => {
+        refresh.disabled = true;
+        const taskId = task.id;
+        try {
+          const data2 = await api2.refreshIssue(taskId, revision);
+          state = data2.state;
+          revision = data2.revision;
+          render();
+          if ($("editor").open && editingTask === taskId) {
+            const updated = state.tasks.find((item) => item.id === taskId);
+            renderTaskIssue(updated);
+          }
+          notify("GitHub details refreshed. Local edits preserved.");
+        } catch (error62) {
+          notify(error62.message);
+        } finally {
+          refresh.disabled = false;
+        }
+      };
+      container.append(source, refresh);
+    }
+    function clearIssuePreview() {
+      issueRequest += 1;
+      selectedIssue = null;
+      issueResults = [];
+      $("issue-preview").hidden = true;
+      $("issue-preview").replaceChildren();
+      $("issue-results").replaceChildren();
+      $("confirm-issue-import").disabled = true;
+    }
+    $("open-issue-import").onclick = () => {
+      clearIssuePreview();
+      issueBusy = false;
+      $("search-issues").disabled = false;
+      fillOptions("issue-project", state.projects, $("task-project").value);
+      const project = projectFor($("issue-project").value);
+      $("issue-repository").value = project.repo;
+      $("issue-query").value = "";
+      $("issue-message").textContent = "";
+      issueStatus = $("task-status").value;
+      $("issue-import").showModal();
+    };
+    $("close-issue-import").onclick = () => {
+      issueRequest += 1;
+      $("issue-import").close();
+    };
+    $("issue-project").onchange = () => {
+      const project = projectFor($("issue-project").value);
+      $("issue-repository").value = project.repo;
+      clearIssuePreview();
+    };
+    $("issue-query").oninput = clearIssuePreview;
+    $("issue-repository").oninput = clearIssuePreview;
+    $("issue-import-form").onsubmit = async (event) => {
+      event.preventDefault();
+      if (issueBusy) return;
+      clearIssuePreview();
+      const request = issueRequest;
+      issueBusy = true;
+      $("search-issues").disabled = true;
+      $("issue-message").textContent = "Reading GitHub\u2026";
+      try {
+        const data2 = await api2.searchIssues($("issue-repository").value, $("issue-query").value);
+        if (request !== issueRequest || $("issue-import").open === false) return;
+        issueResults = data2.issueResults;
+        $("issue-message").textContent = issueResults.length ? "Choose an issue to preview." : "No matching issues.";
+        issueResults.forEach((issue2, index) => {
+          const choice = element("button", "issue-result", "#" + issue2.number + " " + issue2.title);
+          choice.type = "button";
+          choice.onclick = () => selectIssue(index);
+          $("issue-results").append(choice);
+        });
+        if (issueResults.length === 1) selectIssue(0);
+      } catch (error62) {
+        if (request === issueRequest) $("issue-message").textContent = error62.message;
+      } finally {
+        issueBusy = false;
+        $("search-issues").disabled = false;
+      }
+    };
+    function selectIssue(index) {
+      selectedIssue = issueResults[index];
+      const preview = issueSource(selectedIssue);
+      $("issue-preview").replaceChildren(preview);
+      $("issue-preview").hidden = false;
+      const existing = state.tasks.find((task) => task.issue && task.issue.url.toLowerCase() === selectedIssue.url.toLowerCase());
+      $("confirm-issue-import").textContent = existing ? "Open existing task" : "Import task";
+      $("confirm-issue-import").disabled = false;
+    }
+    $("confirm-issue-import").onclick = async () => {
+      if (selectedIssue === null || issueBusy) return;
+      issueBusy = true;
+      $("confirm-issue-import").disabled = true;
+      $("search-issues").disabled = true;
+      try {
+        const data2 = await api2.importIssue(selectedIssue.url, $("issue-project").value, issueStatus, revision);
+        state = data2.state;
+        revision = data2.revision;
+        render();
+        $("issue-import").close();
+        $("editor").close();
+        const task = state.tasks.find((item) => item.id === data2.importedTaskId);
+        openTask(task, task.projectId, task.statusId);
+        notify(data2.duplicate ? "Opened the existing imported task." : "Issue imported. GitHub is unchanged.");
+      } catch (error62) {
+        $("issue-message").textContent = error62.message;
+      } finally {
+        issueBusy = false;
+        $("confirm-issue-import").disabled = false;
+        $("search-issues").disabled = false;
+      }
+    };
+    $("delete-task").onclick = () => {
+      state.tasks = state.tasks.filter((task) => task.id !== editingTask);
+      persist();
+      $("editor").close();
+    };
+    $("close").onclick = () => $("editor").close();
+    $("new-task").onclick = () => openTask(null, selectedProject, "backlog");
+    function openProject(project) {
+      projectLookup += 1;
+      $("save-project").disabled = false;
+      $("project-repo-status").textContent = "";
+      editingProject = project ? project.id : null;
+      for (const [id2, key] of [["project-name", "name"], ["project-repo", "repo"], ["project-path", "path"], ["project-codex", "codexId"]]) $(id2).value = project ? project[key] : "";
+      $("delete-project").hidden = project === null;
+      const occupied = state.tasks.some((task) => task.projectId === editingProject);
+      $("delete-project").disabled = occupied;
+      $("delete-project").title = occupied ? "Move tasks to another project first." : "";
+      fillCatalog(project);
+      $("project-editor").showModal();
+      $("project-name").focus();
+    }
+    $("project-form").onsubmit = (event) => {
+      event.preventDefault();
+      const name2 = $("project-name").value.trim();
+      if (name2.length === 0) return;
+      const project = { id: editingProject || crypto.randomUUID(), name: name2, repo: $("project-repo").value.trim(), path: $("project-path").value.trim(), codexId: $("project-codex").value.trim(), hostId: $("project-host").value };
+      const index = state.projects.findIndex((item) => item.id === editingProject);
+      if (index >= 0) state.projects[index] = project;
+      else state.projects.push(project);
+      persist();
+      $("project-editor").close();
+    };
+    $("delete-project").onclick = () => {
+      state.projects = state.projects.filter((project) => project.id !== editingProject);
+      if (selectedProject === editingProject) selectedProject = null;
+      persist();
+      $("project-editor").close();
+    };
+    $("close-project").onclick = () => $("project-editor").close();
+    $("add-project").onclick = () => openProject(null);
+    $("sidebar-add").onclick = () => openProject(null);
+    $("edit-project").onclick = () => {
+      const project = projectFor(selectedProject);
+      openProject(project);
+    };
+    $("overview").onclick = () => selectProject(null);
+    $("by-project").onclick = () => {
+      view = "projects";
+      render();
+    };
+    $("by-status").onclick = () => {
+      view = "status";
+      render();
+    };
+    $("search").oninput = render;
+    function fillCatalog(project) {
+      const selectedId = project ? project.codexId : "";
+      const selectedHost = project ? project.hostId || "local" : "local";
+      $("project-host").value = selectedHost;
+      $("codex-project").replaceChildren();
+      const none4 = element("option", "", "No Codex project");
+      none4.value = "";
+      $("codex-project").append(none4);
+      catalog.forEach((item, index) => {
+        const label = item.label + " \u2014 " + item.path;
+        const option = element("option", "", label);
+        option.value = String(index);
+        option.selected = item.projectId === selectedId && item.hostId === selectedHost;
+        $("codex-project").append(option);
+      });
+      if (selectedId && catalog.some((item) => item.projectId === selectedId && item.hostId === selectedHost) === false) {
+        const retained = element("option", "", "Linked project (refresh catalog to update)");
+        retained.value = "retained";
+        retained.selected = true;
+        $("codex-project").append(retained);
+      }
+    }
+    $("codex-project").onchange = async () => {
+      projectLookup += 1;
+      const request = projectLookup;
+      const value = $("codex-project").value;
+      if (value === "retained") return;
+      const project = value === "" ? null : catalog[Number(value)];
+      $("project-codex").value = project ? project.projectId : "";
+      $("project-host").value = project ? project.hostId : "local";
+      $("save-project").disabled = false;
+      $("project-repo-status").textContent = "";
+      if (project === null) return;
+      $("project-name").value = project.label;
+      $("project-path").value = project.path;
+      $("project-repo").value = "";
+      $("save-project").disabled = true;
+      $("project-repo-status").textContent = "Reading Git repository\u2026";
+      try {
+        const details = await api2.resolveProject(project.projectId, project.hostId);
+        if (request !== projectLookup) return;
+        $("project-repo").value = details.repo;
+        const messages = { "found": "", "no-origin": "This project has no Git origin configured.", "not-a-repository": "This project is not a Git repository.", "remote-host": "The Git URL must be entered manually for a project on another host." };
+        $("project-repo-status").textContent = messages[details.repoStatus];
+      } catch (error62) {
+        if (request !== projectLookup) return;
+        $("project-repo-status").textContent = error62.message;
+      } finally {
+        if (request === projectLookup) $("save-project").disabled = false;
+      }
+    };
+    async function requestAgent(text) {
+      try {
+        await api2.message(text);
+        notify("Requested in chat.");
+      } catch (error62) {
+        notify(error62.message);
+      }
+    }
+    $("sync-projects").onclick = () => requestAgent("Use the taskboard skill to refresh the Codex project catalog with list_projects and taskboard_sync_projects. Do not create board projects or change existing tasks.");
+    function renderChatPicker() {
+      $("selected-chats").replaceChildren();
+      for (const chat of selectedChats) {
+        const row = element("div", "selected-chat");
+        const elsewhere = chat.threadId && chat.deviceId && chat.deviceId !== deviceId;
+        const label = elsewhere ? chat.title + " \xB7 " + chat.deviceName : chat.title;
+        const title = element("button", "selected-chat-open", label);
+        const icon = chatIcon();
+        title.prepend(icon);
+        title.disabled = Boolean(elsewhere);
+        title.type = "button";
+        title.title = "Open " + chat.title;
+        title.onclick = () => openChat(chat);
+        const remove2 = element("button", "icon", "\xD7");
+        remove2.type = "button";
+        remove2.setAttribute("aria-label", "Unlink " + chat.title);
+        remove2.onclick = () => {
+          const key = chatKey(chat);
+          selectedChats = selectedChats.filter((item) => chatKey(item) !== key);
+          renderChatPicker();
+        };
+        row.append(title, remove2);
+        $("selected-chats").append(row);
+      }
+      const project = projectFor($("task-project").value);
+      configureCreateChat($("create-agent-chat"), project);
+      const scoped = project && project.codexId && $("all-chats").checked === false;
+      const query = $("chat-search").value.toLowerCase();
+      const choices2 = chatCatalog.filter((chat) => {
+        const title = chat.title.toLowerCase();
+        const matchesProject = scoped ? chat.projectId === project.codexId && chat.hostId === project.hostId : true;
+        return matchesProject && title.includes(query);
+      });
+      $("chat-options").replaceChildren();
+      for (const chat of choices2) {
+        const label = element("label", "chat-choice");
+        const checkbox = element("input", "");
+        checkbox.type = "checkbox";
+        const key = chatKey(chat);
+        checkbox.checked = selectedChats.some((item) => chatKey(item) === key);
+        checkbox.onchange = () => {
+          if (checkbox.checked) selectedChats.push({ ...chat });
+          else selectedChats = selectedChats.filter((item) => chatKey(item) !== key);
+          renderChatPicker();
+        };
+        const title = element("span", "", chat.title);
+        label.append(checkbox, title);
+        $("chat-options").append(label);
+      }
+      if (choices2.length === 0) {
+        const empty = element("p", "form-note", query ? "No matching chats." : "No synced chats in this view.");
+        $("chat-options").append(empty);
+      }
+      const scope = scoped ? "This project" : "All projects";
+      const date5 = chatsUpdatedAt ? new Date(chatsUpdatedAt) : null;
+      const refreshed = date5 ? " \xB7 Synced " + date5.toLocaleString() : " \xB7 Not synced yet";
+      $("chat-status").textContent = scope + refreshed + ". Sync chats asks Codex to refresh recent chat titles; Reload list loads the results.";
+    }
+    $("chat-search").oninput = renderChatPicker;
+    $("all-chats").onchange = renderChatPicker;
+    $("task-project").onchange = renderChatPicker;
+    $("sync-chats").onclick = () => requestAgent("Use the taskboard skill to refresh the recent Codex chat catalog with list_threads and taskboard_sync_chats. Include confirmed chat ID, host, exact title and project ID. Do not modify ticket links or send messages to any chat.");
+    $("reload-chats").onclick = async () => {
+      try {
+        const data2 = await api2.read();
+        chatCatalog = data2.chatCatalog;
+        chatsUpdatedAt = data2.chatsUpdatedAt;
+        renderChatPicker();
+      } catch (error62) {
+        $("chat-status").textContent = error62.message;
+      }
+    };
+    $("refresh-board").onclick = async () => {
+      try {
+        const result = await api2.read();
+        state = result.state;
+        revision = result.revision;
+        catalog = result.catalog;
+        failed = false;
+        document.body.classList.remove("save-error");
+        $("save-status").textContent = "All changes saved";
+        render();
+      } catch (error62) {
+        notify(error62.message);
+      }
+    };
+    render();
+    return (data2) => {
+      chatCatalog = data2.chatCatalog;
+      chatsUpdatedAt = data2.chatsUpdatedAt;
+      if ($("editor").open) renderChatPicker();
+      if (saving || failed || document.querySelector("dialog[open]")) return;
+      if (data2.revision < revision) return;
+      state = data2.state;
+      revision = data2.revision;
+      catalog = data2.catalog;
+      if (projectFor(selectedProject) === void 0) selectedProject = null;
+      render();
+    };
+  }
+
   // src/ui/bridge.js
-  var app = new i({ name: "taskboard", version: "0.8.1" });
+  var app = new i({ name: "taskboard", version: "0.9.1" });
   new OpenAIExtensions(app);
   var accept;
   var workspace = document.getElementById("workspace");

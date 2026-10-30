@@ -4,6 +4,7 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirro
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { tags } from '@lezer/highlight';
+import { imagePreviews,imagePasteSession,imagePaste } from './markdown-images.js';
 
 const descriptionInput = document.getElementById('description');
 const editorContainer = document.getElementById('description-editor');
@@ -32,13 +33,23 @@ function createState(doc) {
  const empty = placeholder('Write or paste Markdown…');
  const undo = history();
  const selection = drawSelection();
- return EditorState.create({doc,extensions:[language,highlightingExtension,bindings,undo,selection,EditorView.lineWrapping,attributes,empty,updateListener]});
+ const paste = imagePaste(message => {
+  const status = document.getElementById('description-status');
+  status.textContent = message;
+ });
+ return EditorState.create({doc,extensions:[language,highlightingExtension,bindings,undo,selection,imagePreviews,imagePasteSession,paste,EditorView.lineWrapping,attributes,empty,updateListener]});
 }
 const initialState = createState(descriptionInput.value);
 const descriptionEditor = new EditorView({state:initialState,parent:editorContainer});
+export async function descriptionImagesReady() {
+ const session = descriptionEditor.state.field(imagePasteSession);
+ while (session.pending.size > 0) await Promise.all(session.pending);
+ return descriptionEditor.state.field(imagePasteSession) === session;
+}
 const dialog = document.getElementById('editor');
 const editorObserver = new MutationObserver(() => {
  if (dialog.open) {
+  document.getElementById('description-status').textContent = '';
   const state = createState(descriptionInput.value);
   descriptionEditor.setState(state);
   descriptionEditor.requestMeasure();

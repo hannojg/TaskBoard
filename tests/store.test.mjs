@@ -8,6 +8,44 @@ const project = {id:'p',name:'Project',repo:'',path:'/repo',codexId:'codex-p',ho
 const task = {id:'t',title:'Ticket',description:'**Markdown**',priority:'None',due:'',projectId:'p',statusId:'review',chats:[{threadId:'chat-1',hostId:'local',title:'Chat one',url:''}]};
 const initial = {version:3,projects:[project],tasks:[task]};
 
+test('pasted images survive cross-device saves without filling the board database row',async t => {
+ const {client,db,images} = await sharedFixture(t);
+ const first = client();
+ const source = 'data:image/png;base64,'+'a'.repeat(2400000);
+ const description = 'Screenshot\n\n![Screen]('+source+')';
+ const withImage = {...initial,tasks:[{...task,description}]};
+ const saved = await first.save(withImage,0);
+ assert.equal(saved.state.tasks[0].description,description);
+ assert.equal(images.size,1);
+ const statement = db.prepare('SELECT data FROM board WHERE id=1');
+ const row = await statement.first();
+ assert.ok(row.data.length < 2000);
+ assert.match(row.data,/taskboard-image:[a-f0-9]{64}/);
+ assert.equal(row.data.includes(source),false);
+ const second = client();
+ const other = await second.read();
+ assert.equal(other.state.tasks[0].description,description);
+ other.state.tasks[0].title = 'Screenshot edited on second Mac';
+ await second.save(other.state,other.revision);
+ const reloaded = await first.read();
+ assert.equal(reloaded.state.tasks[0].description,description);
+ assert.equal(images.size,1);
+ assert.equal(reloaded.state.tasks[0].title,'Screenshot edited on second Mac');
+});
+
+test('failed image uploads do not overwrite the saved board',async t => {
+ const {client,bucket} = await sharedFixture(t);
+ const store = client();
+ const saved = await store.save(initial,0);
+ bucket.put = async () => { throw new Error('Image storage unavailable'); };
+ const withImage = {...saved.state,tasks:[{...task,description:'![Screen](data:image/png;base64,YWJj)'}]};
+ t.mock.method(console,'error',() => {});
+ await assert.rejects(store.save(withImage,saved.revision),/Could not access/);
+ const current = await store.read();
+ assert.equal(current.revision,saved.revision);
+ assert.equal(current.state.tasks[0].description,task.description);
+});
+
 test('two machines share tasks while preserving their separate project bindings',async t => {
  const {client} = await sharedFixture(t);
  const first = client(); const second = client();

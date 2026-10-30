@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { boardSchema,catalogSchema } from '../server/schemas.mjs';
 import { chatCatalogSchema,chatKey } from '../server/chats.mjs';
+import { storeImages,loadImages } from './images.mjs';
 
 const revisionSchema = z.number().int().nonnegative();
 const deviceSchema = z.string().uuid();
@@ -44,10 +45,11 @@ function sharedBoard(state,current,deviceId,deviceName) {
  return {...state,projects,tasks};
 }
 
-async function read(db,deviceId) {
+async function read(db,deviceId,bucket) {
  const row = await boardRow(db);
  const decoded = JSON.parse(row.data);
- const state = boardSchema.parse(decoded);
+ const stored = boardSchema.parse(decoded);
+ const state = await loadImages(stored,bucket);
  const select = db.prepare('SELECT * FROM device_catalogs WHERE device_id=?');
  const device = await select.bind(deviceId).first();
  const projects = device ? JSON.parse(device.projects) : [];
@@ -57,7 +59,7 @@ async function read(db,deviceId) {
  return {state:scopeBoard(state,deviceId),revision:row.revision,catalog:projects,chatCatalog:chats,catalogUpdatedAt:device ? device.projects_updated_at : null,chatsUpdatedAt:device ? device.chats_updated_at : null,deviceId};
 }
 
-async function save(db,input,deviceId,deviceName) {
+async function save(db,input,deviceId,deviceName,bucket) {
  const state = boardSchema.parse(input.state);
  const revision = revisionSchema.parse(input.revision);
  const row = await boardRow(db);
@@ -66,11 +68,12 @@ async function save(db,input,deviceId,deviceName) {
  const current = boardSchema.parse(decoded);
  const shared = sharedBoard(state,current,deviceId,deviceName);
  const validated = boardSchema.parse(shared);
- const data = JSON.stringify(validated);
+ const stored = await storeImages(validated,bucket);
+ const data = JSON.stringify(stored);
  const update = db.prepare('UPDATE board SET data=?,revision=revision+1 WHERE id=1 AND revision=?');
  const result = await update.bind(data,revision).run();
  if (result.meta.changes !== 1) return json({error:conflict},409);
- const saved = await read(db,deviceId);
+ const saved = await read(db,deviceId,bucket);
  return json(saved);
 }
 
@@ -99,31 +102,31 @@ async function syncChats(db,chats,deviceId,deviceName) {
  await update.bind(deviceId,deviceName,data,updatedAt).run();
 }
 
-export async function handleBoardRequest(request,db) {
+export async function handleBoardRequest(request,db,bucket) {
  try {
   const header = request.headers.get('X-TaskBoard-Device');
   const deviceId = deviceSchema.parse(header);
   const encodedName = request.headers.get('X-TaskBoard-Name') || '';
   const deviceName = decodeURIComponent(encodedName);
   if (request.method === 'GET') {
-   const data = await read(db,deviceId);
+   const data = await read(db,deviceId,bucket);
    return json(data);
   }
   if (request.method !== 'POST') return json({error:'Method not allowed.'},405);
   const input = await request.json();
-  if (input.operation === 'save') return await save(db,input,deviceId,deviceName);
+  if (input.operation === 'save') return await save(db,input,deviceId,deviceName,bucket);
   if (input.operation === 'projects') await syncProjects(db,input.projects,deviceId,deviceName);
   else if (input.operation === 'chats') await syncChats(db,input.chats,deviceId,deviceName);
   else if (input.operation === 'import') {
    const snapshot = input.snapshot;
    const row = await boardRow(db);
    if (row.revision !== 0) return json({error:'The shared board already contains saved changes. The local board was not imported.'},409);
-   const imported = await save(db,{state:snapshot.state,revision:0},deviceId,deviceName);
+   const imported = await save(db,{state:snapshot.state,revision:0},deviceId,deviceName,bucket);
    if (imported.ok === false) return imported;
    await syncProjects(db,snapshot.catalog,deviceId,deviceName);
    await syncChats(db,snapshot.chatCatalog,deviceId,deviceName);
   } else return json({error:'Unknown board operation.'},400);
-  const data = await read(db,deviceId);
+  const data = await read(db,deviceId,bucket);
   return json(data);
  } catch(error) {
   if (error instanceof z.ZodError) {

@@ -20,7 +20,7 @@ const iconFile = new URL('../assets/icon.svg',import.meta.url);
 const icon = await readFile(iconFile);
 const encodedIcon = icon.toString('base64');
 const icons = [{src:'data:image/svg+xml;base64,'+encodedIcon,mimeType:'image/svg+xml',sizes:['any']}];
-const server = new McpServer({name:'taskboard',version:'0.8.1',icons});
+const server = new McpServer({name:'taskboard',version:'0.9.1',icons});
 // The SDK omits tool icons from tools/list; expose them at the protocol boundary.
 const registerHandler = server.server.setRequestHandler.bind(server.server);
 server.server.setRequestHandler = (schema,handler) => {
@@ -31,13 +31,13 @@ server.server.setRequestHandler = (schema,handler) => {
   return {...listed,tools};
  });
 };
-const uri = 'ui://taskboard/0.8.1/board.html';
-const panelUri = 'ui://taskboard/0.8.1/panel.html';
+const uri = 'ui://taskboard/0.9.1/board.html';
+const panelUri = 'ui://taskboard/0.9.1/panel.html';
 function registerBoardResource(name,resourceUri,preferredDisplayMode) {
  registerAppResource(server,name,resourceUri,{},async () => {
   const file = new URL('./app.html',import.meta.url);
   const html = await readFile(file,'utf8');
-  return {contents:[{uri:resourceUri,mimeType:RESOURCE_MIME_TYPE,text:html,_meta:{ui:{csp:{connectDomains:[],resourceDomains:[]}},'openai/ui':{preferredDisplayMode,availableDisplayModes:['inline','fullscreen']}}}]};
+  return {contents:[{uri:resourceUri,mimeType:RESOURCE_MIME_TYPE,text:html,_meta:{ui:{csp:{connectDomains:[],resourceDomains:['https://*','http://*','data:']}},'openai/ui':{preferredDisplayMode,availableDisplayModes:['inline','fullscreen']}}}]};
  });
 }
 registerBoardResource('taskboard',uri,'fullscreen');

@@ -4,9 +4,9 @@ import { handleBoardRequest } from '../../../lib/board-api.mjs';
 export const dynamic = 'force-dynamic';
 
 export function GET(request: Request) {
- return handleBoardRequest(request,env.DB);
+ return handleBoardRequest(request,env.DB,env.BUCKET);
 }
 
 export function POST(request: Request) {
- return handleBoardRequest(request,env.DB);
+ return handleBoardRequest(request,env.DB,env.BUCKET);
 }

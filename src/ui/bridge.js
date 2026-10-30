@@ -3,7 +3,7 @@ import { OpenAIExtensions } from '@openai/mcp-extensions/app';
 import { startBoard } from './board.js';
 import './markdown.js';
 import './style.css';
-const app = new App({name:'taskboard',version:'0.8.1'});
+const app = new App({name:'taskboard',version:'0.9.1'});
 new OpenAIExtensions(app);
 let accept;
 const workspace = document.getElementById('workspace');

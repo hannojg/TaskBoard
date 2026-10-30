@@ -31,6 +31,14 @@ export async function sharedFixture(t) {
   }
   return bound();
  }};
+ const images = new Map();
+ const bucket = {
+  async put(key,value) { images.set(key,value); },
+  async get(key) {
+   const value = images.get(key);
+   return value === undefined ? null : {async text() { return value; }};
+  }
+ };
  const server = createServer(async (incoming,outgoing) => {
   if (incoming.headers['oai-sites-authorization'] !== 'Bearer test-key') {
    outgoing.writeHead(403); outgoing.end(); return;
@@ -40,7 +48,7 @@ export async function sharedFixture(t) {
   const options = {method:incoming.method,headers:incoming.headers};
   if (incoming.method !== 'GET') options.body = body;
   const request = new Request('https://board.example/api/board',options);
-  const response = await handleBoardRequest(request,db);
+  const response = await handleBoardRequest(request,db,bucket);
   const headers = Object.fromEntries(response.headers);
   outgoing.writeHead(response.status,headers);
   const text = await response.text();
@@ -59,5 +67,5 @@ export async function sharedFixture(t) {
   await once(server,'close');
   sqlite.close();
  });
- return {client,db,url};
+ return {client,db,url,images,bucket};
 }

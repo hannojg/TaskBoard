@@ -19768,6 +19768,55 @@ var boardSchema = external_exports.object({ version: external_exports.literal(3)
 });
 var catalogSchema = external_exports.array(external_exports.object({ projectId: external_exports.string(), label: external_exports.string(), path: external_exports.string(), hostId: external_exports.string(), isGitRepository: external_exports.boolean() }));
 
+// src/cloud/images.mjs
+var embeddedImage = /data:image\/[\w.+-]+;base64,[A-Za-z0-9+/]+={0,2}/g;
+var storedImage = /taskboard-image:([a-f0-9]{64})/g;
+async function storeImages(state, bucket) {
+  const sources = /* @__PURE__ */ new Set();
+  for (const task of state.tasks) {
+    const matches = task.description.match(embeddedImage) || [];
+    for (const source of matches) sources.add(source);
+  }
+  const replacements = /* @__PURE__ */ new Map();
+  const encoder = new TextEncoder();
+  for (const source of sources) {
+    const bytes = encoder.encode(source);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    const hashBytes = new Uint8Array(digest);
+    const hex3 = Array.from(hashBytes, (byte) => {
+      const value = byte.toString(16);
+      return value.padStart(2, "0");
+    });
+    const id = hex3.join("");
+    await bucket.put("images/" + id, source);
+    replacements.set(source, "taskboard-image:" + id);
+  }
+  const tasks = state.tasks.map((task) => {
+    const description = task.description.replace(embeddedImage, (source) => replacements.get(source));
+    return { ...task, description };
+  });
+  return { ...state, tasks };
+}
+async function loadImages(state, bucket) {
+  const ids = /* @__PURE__ */ new Set();
+  for (const task of state.tasks) {
+    const matches = task.description.matchAll(storedImage);
+    for (const match of matches) ids.add(match[1]);
+  }
+  const sources = /* @__PURE__ */ new Map();
+  for (const id of ids) {
+    const object2 = await bucket.get("images/" + id);
+    if (object2 === null) throw new Error("A saved task image is missing from shared storage.");
+    const source = await object2.text();
+    sources.set(id, source);
+  }
+  const tasks = state.tasks.map((task) => {
+    const description = task.description.replace(storedImage, (_match, id) => sources.get(id));
+    return { ...task, description };
+  });
+  return { ...state, tasks };
+}
+
 // src/cloud/board-api.mjs
 var revisionSchema = external_exports.number().int().nonnegative();
 var deviceSchema = external_exports.string().uuid();
@@ -19806,10 +19855,11 @@ function sharedBoard(state, current, deviceId, deviceName) {
   });
   return { ...state, projects, tasks };
 }
-async function read(db, deviceId) {
+async function read(db, deviceId, bucket) {
   const row = await boardRow(db);
   const decoded = JSON.parse(row.data);
-  const state = boardSchema.parse(decoded);
+  const stored = boardSchema.parse(decoded);
+  const state = await loadImages(stored, bucket);
   const select = db.prepare("SELECT * FROM device_catalogs WHERE device_id=?");
   const device = await select.bind(deviceId).first();
   const projects = device ? JSON.parse(device.projects) : [];
@@ -19818,7 +19868,7 @@ async function read(db, deviceId) {
   const chats = chatValues.map((value) => JSON.parse(value));
   return { state: scopeBoard(state, deviceId), revision: row.revision, catalog: projects, chatCatalog: chats, catalogUpdatedAt: device ? device.projects_updated_at : null, chatsUpdatedAt: device ? device.chats_updated_at : null, deviceId };
 }
-async function save(db, input2, deviceId, deviceName) {
+async function save(db, input2, deviceId, deviceName, bucket) {
   const state = boardSchema.parse(input2.state);
   const revision = revisionSchema.parse(input2.revision);
   const row = await boardRow(db);
@@ -19827,11 +19877,12 @@ async function save(db, input2, deviceId, deviceName) {
   const current = boardSchema.parse(decoded);
   const shared = sharedBoard(state, current, deviceId, deviceName);
   const validated = boardSchema.parse(shared);
-  const data = JSON.stringify(validated);
+  const stored = await storeImages(validated, bucket);
+  const data = JSON.stringify(stored);
   const update = db.prepare("UPDATE board SET data=?,revision=revision+1 WHERE id=1 AND revision=?");
   const result = await update.bind(data, revision).run();
   if (result.meta.changes !== 1) return json2({ error: conflict }, 409);
-  const saved = await read(db, deviceId);
+  const saved = await read(db, deviceId, bucket);
   return json2(saved);
 }
 async function syncProjects(db, projects, deviceId, deviceName) {
@@ -19856,31 +19907,31 @@ async function syncChats(db, chats, deviceId, deviceName) {
   const update = db.prepare("INSERT INTO device_catalogs (device_id,name,chats,chats_updated_at) VALUES (?,?,?,?) ON CONFLICT(device_id) DO UPDATE SET name=excluded.name,chats=json_patch(device_catalogs.chats,excluded.chats),chats_updated_at=excluded.chats_updated_at");
   await update.bind(deviceId, deviceName, data, updatedAt).run();
 }
-async function handleBoardRequest(request, db) {
+async function handleBoardRequest(request, db, bucket) {
   try {
     const header = request.headers.get("X-TaskBoard-Device");
     const deviceId = deviceSchema.parse(header);
     const encodedName = request.headers.get("X-TaskBoard-Name") || "";
     const deviceName = decodeURIComponent(encodedName);
     if (request.method === "GET") {
-      const data2 = await read(db, deviceId);
+      const data2 = await read(db, deviceId, bucket);
       return json2(data2);
     }
     if (request.method !== "POST") return json2({ error: "Method not allowed." }, 405);
     const input2 = await request.json();
-    if (input2.operation === "save") return await save(db, input2, deviceId, deviceName);
+    if (input2.operation === "save") return await save(db, input2, deviceId, deviceName, bucket);
     if (input2.operation === "projects") await syncProjects(db, input2.projects, deviceId, deviceName);
     else if (input2.operation === "chats") await syncChats(db, input2.chats, deviceId, deviceName);
     else if (input2.operation === "import") {
       const snapshot = input2.snapshot;
       const row = await boardRow(db);
       if (row.revision !== 0) return json2({ error: "The shared board already contains saved changes. The local board was not imported." }, 409);
-      const imported = await save(db, { state: snapshot.state, revision: 0 }, deviceId, deviceName);
+      const imported = await save(db, { state: snapshot.state, revision: 0 }, deviceId, deviceName, bucket);
       if (imported.ok === false) return imported;
       await syncProjects(db, snapshot.catalog, deviceId, deviceName);
       await syncChats(db, snapshot.chatCatalog, deviceId, deviceName);
     } else return json2({ error: "Unknown board operation." }, 400);
-    const data = await read(db, deviceId);
+    const data = await read(db, deviceId, bucket);
     return json2(data);
   } catch (error62) {
     if (error62 instanceof external_exports.ZodError) {

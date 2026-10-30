@@ -1,3 +1,5 @@
+import { descriptionText } from './description.js';
+
 export function chatUrl(chat) {
  if (chat.url) {
   const url = new URL(chat.url);
@@ -31,7 +33,9 @@ export function taskChatUrl(task,project,statusName) {
  if (project.repo) lines.push('Repository: '+project.repo);
  if (task.description) {
   const heading = task.issue ? '## Local notes' : '## Description';
-  lines.push('',heading,'',task.description);
+  const description = descriptionText(task.description);
+  lines.push('',heading,'',description);
+  if (description !== task.description) lines.push('','Images are attached to this ticket. Read the latest ticket through TaskBoard to retrieve their image data.');
  }
  if (task.issue) {
   lines.push('','## GitHub issue (source context)','',task.issue.title,task.issue.url,'State: '+task.issue.state,'',task.issue.body);

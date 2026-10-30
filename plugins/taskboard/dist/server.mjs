@@ -37889,7 +37889,7 @@ var iconFile = new URL("../assets/icon.svg", import.meta.url);
 var icon = await readFile4(iconFile);
 var encodedIcon = icon.toString("base64");
 var icons = [{ src: "data:image/svg+xml;base64," + encodedIcon, mimeType: "image/svg+xml", sizes: ["any"] }];
-var server = new McpServer({ name: "taskboard", version: "0.8.1", icons });
+var server = new McpServer({ name: "taskboard", version: "0.9.1", icons });
 var registerHandler = server.server.setRequestHandler.bind(server.server);
 server.server.setRequestHandler = (schema, handler) => {
   if (schema !== ListToolsRequestSchema) return registerHandler(schema, handler);
@@ -37899,13 +37899,13 @@ server.server.setRequestHandler = (schema, handler) => {
     return { ...listed, tools };
   });
 };
-var uri = "ui://taskboard/0.8.1/board.html";
-var panelUri = "ui://taskboard/0.8.1/panel.html";
+var uri = "ui://taskboard/0.9.1/board.html";
+var panelUri = "ui://taskboard/0.9.1/panel.html";
 function registerBoardResource(name, resourceUri, preferredDisplayMode) {
   N3(server, name, resourceUri, {}, async () => {
     const file2 = new URL("./app.html", import.meta.url);
     const html = await readFile4(file2, "utf8");
-    return { contents: [{ uri: resourceUri, mimeType: p, text: html, _meta: { ui: { csp: { connectDomains: [], resourceDomains: [] } }, "openai/ui": { preferredDisplayMode, availableDisplayModes: ["inline", "fullscreen"] } } }] };
+    return { contents: [{ uri: resourceUri, mimeType: p, text: html, _meta: { ui: { csp: { connectDomains: [], resourceDomains: ["https://*", "http://*", "data:"] } }, "openai/ui": { preferredDisplayMode, availableDisplayModes: ["inline", "fullscreen"] } } }] };
   });
 }
 registerBoardResource("taskboard", uri, "fullscreen");

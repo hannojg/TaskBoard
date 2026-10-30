@@ -55,7 +55,7 @@ test('bundled Site preparation preserves the new Site ID and excludes the mainta
  assert.equal(result.status,0,result.stderr);
  const preparedText = await readFile(manifestPath,'utf8');
  const prepared = JSON.parse(preparedText);
- assert.deepEqual(prepared,{project_id:'test-site-id',d1:'DB',r2:null});
+ assert.deepEqual(prepared,{project_id:'test-site-id',d1:'DB',r2:'BUCKET'});
  const api = join(creation.sourceDirectory,'lib','board-api.mjs');
  await access(api);
  const templateManifest = resolve('plugins/taskboard/site/.openai/hosting.json');

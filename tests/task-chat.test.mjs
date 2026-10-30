@@ -5,6 +5,18 @@ import { chatUrl,taskChatUrl } from '../src/task-chat.js';
 const project = {id:'project-1',name:'Example project',path:'/Users/example/Project & tools',repo:'https://github.com/example/repo',hostId:'local'};
 const task = {id:'ticket-1',title:'Keep #tags & Unicode ✓',description:'First line\n\n**Markdown** & details',priority:'High',due:'2026-11-03',statusId:'review',chats:[]};
 
+test('image attachments keep draft links small and point the agent to the saved ticket',() => {
+ const source = 'data:image/png;base64,'+'a'.repeat(2400000);
+ const description = 'Before\n\n![Screenshot]('+source+')\n\nAfter';
+ const link = taskChatUrl({...task,description},project,'Backlog');
+ assert.ok(link.length < 3000);
+ const url = new URL(link);
+ const prompt = url.searchParams.get('prompt');
+ assert.ok(prompt.includes('Before\n\n[Image: Screenshot]\n\nAfter'));
+ assert.ok(prompt.includes('Read the latest ticket through TaskBoard'));
+ assert.equal(prompt.includes(source),false);
+});
+
 test('opens confirmed chats on their owning host and preserves imported links',() => {
  const local = chatUrl({threadId:'chat-1',hostId:'local',url:''});
  assert.equal(local,'codex://threads/chat-1');

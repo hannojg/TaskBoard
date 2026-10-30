@@ -32,14 +32,17 @@ try {
  assert.equal(panelResource.contents[0]._meta['openai/ui'].preferredDisplayMode,'inline');
  const opened = await client.callTool({name:'taskboard_open',arguments:{}}); const launch = data(opened); assert.equal(launch.connectionRequired,false);
  const initialRead = await client.callTool({name:'taskboard_read',arguments:{}}); let board = data(initialRead); assert.equal(board.revision,0);
- const resource = await client.readResource({uri:'ui://taskboard/0.8.1/board.html'}); assert.match(resource.contents[0].text,/description-editor/);
+ const resource = await client.readResource({uri:'ui://taskboard/0.9.1/board.html'}); assert.match(resource.contents[0].text,/description-editor/);
+ assert.ok(resource.contents[0]._meta.ui.csp.resourceDomains.includes('https://*'));
+ assert.ok(resource.contents[0]._meta.ui.csp.resourceDomains.includes('data:'));
  const synced = await client.callTool({name:'taskboard_sync_projects',arguments:{projects:[{projectId:'verified-p',label:'Example',path:'/repo',hostId:'local',isGitRepository:true}]}}); board = data(synced); assert.equal(board.catalog.length,1);
  const chatSync = await client.callTool({name:'taskboard_sync_chats',arguments:{chats:[{threadId:'confirmed-chat',hostId:'local',title:'Confirmed chat',projectId:'verified-p'}]}}); board = data(chatSync); assert.equal(board.chatCatalog.length,1);
  const project = {id:'p',name:'Example',repo:'',path:'/repo',codexId:'verified-p',hostId:'local',chat:''};
  const added = await client.callTool({name:'taskboard_upsert_project',arguments:{project,revision:board.revision}}); board = data(added);
- const task = {id:'t',title:'Test ticket',description:'**bold**',priority:'None',due:'',projectId:'p',statusId:'backlog',chats:[{threadId:'confirmed-chat',hostId:'local',title:'Confirmed chat',url:''}]};
+ const task = {id:'t',title:'Test ticket',description:'**bold**\n\n![Screenshot](data:image/png;base64,YWJj)',priority:'None',due:'',projectId:'p',statusId:'backlog',chats:[{threadId:'confirmed-chat',hostId:'local',title:'Confirmed chat',url:''}]};
  const created = await client.callTool({name:'taskboard_upsert_task',arguments:{task,revision:board.revision}}); board = data(created); assert.equal(board.state.tasks[0].chats[0].threadId,'confirmed-chat');
  const stale = await client.callTool({name:'taskboard_save',arguments:{state:board.state,revision:0}}); assert.equal(stale.isError,true);
  const current = await client.callTool({name:'taskboard_read',arguments:{}}); const saved = data(current); assert.equal(saved.state.tasks.length,1);
+ assert.equal(saved.state.tasks[0].description,task.description);
  console.log('Named sidebar and chat entrypoints verified. MCP: resource, catalog sync, project creation, task linking, persistence and conflict checks passed.');
 } finally { await client.close(); for (const cleanup of cleanups) await cleanup(); rmSync(directory,{recursive:true}); }

@@ -60,11 +60,13 @@ Open **TaskBoard** from Codex's plugin sidebar. A separate entrypoint opens it b
 
 Linked chats can be searched, attached and opened from cards or the task editor. **Create agent chat** saves the ticket and opens an unsent Codex draft containing its context. Opening a draft does not create a chat relation; after you send it, the agent can link the confirmed chat back to the ticket. Chat activity does not automatically change task status.
 
+Descriptions show Markdown images inline, including `![Screenshot](https://example.com/image.png)` and reference-style images. Paste an image from the clipboard directly into the description to attach it. Pasted images are saved with the ticket and available on other connected Macs. Undo removes a pasted image in one step.
+
 **Import from GitHub** previews an issue URL or searches a repository, then imports the selected issue. It requires the GitHub CLI to be installed and signed in. These requests are read-only. Imported title, body, labels and open/closed state form a source snapshot; local notes, title, workflow status and chat links remain independent. **Refresh from GitHub** updates only that snapshot. Reimporting an issue opens its existing task.
 
 ## Storage and privacy
 
-One private OpenAI Site and its D1 database store the shared board. Each Mac has a separate identity, project bindings and project/chat catalogs. Native chat links retain their owning Mac, avoiding collisions between identical local chat IDs.
+One private OpenAI Site and its D1 database store the shared board; pasted images live in its private R2 file storage. Each Mac has a separate identity, project bindings and project/chat catalogs. Native chat links retain their owning Mac, avoiding collisions between identical local chat IDs.
 
 Saves require an internet connection. Revision checks reject stale changes; **Refresh board** loads the latest saved data. Connection errors do not create an offline board.
 
@@ -97,5 +99,7 @@ Exporting creates a private file in Downloads. An optional output path is accept
 `node scripts/migrate-shared.mjs` imports the previous local SQLite board into an empty shared board and refuses to overwrite existing shared changes. The original database is retained as a migration snapshot; the plugin no longer uses it for board storage.
 
 The shared API source is `src/cloud/board-api.mjs`. `npm run build` also bundles it into `site/lib/board-api.mjs`. The root `site/` directory is linked to the maintainer's private Site. The installable plugin includes only the template files listed in `scripts/board-template.mjs`, excluding that Site's identity and credentials. The create-board workflow overlays those files onto a fresh Sites Vinext starter and publishes a new owner-private Site.
+
+For boards created before image support, update their shared Site with the current API bundle and route, and set `r2: "BUCKET"` in its hosting manifest before publishing through Sites. Updating the plugin alone does not update an existing board's Site.
 
 Provisioning progress lives in `~/Library/Application Support/TaskBoard/creation.json`, without credentials. Retries preserve the request ID, source directory and confirmed Site ID. The completion helper receives the new Site's connection through hidden stdin, validates access and saves the private local connection. Generate schema migrations from `site/` with `npm run db:generate`, then rebuild and package to update the template. Publishing this Git repository does not publish the Site or expose its board data.

@@ -1,6 +1,8 @@
 import { reorderColumns } from '../column-order.js';
 import { chatKey } from '../chat-key.js';
 import { chatUrl,taskChatUrl } from '../task-chat.js';
+import { descriptionImagesReady } from './markdown.js';
+import { descriptionText } from '../description.js';
 export function startBoard(initialData,api) {
 const $ = id => document.getElementById(id);
 
@@ -28,6 +30,7 @@ let issueStatus = 'backlog';
 let issueRequest = 0;
 let issueBusy = false;
 let openingChat = false;
+let savingTask = false;
 function element(tag,className,text) { const node = document.createElement(tag); node.className = className; if (text) node.textContent = text; return node; }
 function notify(message) { $('toast').textContent = message; $('toast').style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').style.display = 'none'; },2600); }
 async function persist() {
@@ -198,7 +201,7 @@ function taskCard(task,group,groupByProject) {
   link.ondragstart = event => { event.preventDefault(); event.stopPropagation(); };
   card.append(link);
  }
- if (task.description) { const description = element('p','',task.description); card.append(description); }
+ if (task.description) { const text = descriptionText(task.description); const description = element('p','',text); card.append(description); }
  const meta = element('div','meta');
  const context = groupByProject ? statusFor(task.statusId) : projectFor(task.projectId);
  const contextName = context ? context.name : '';
@@ -301,6 +304,7 @@ function fillOptions(id,items,value) { $(id).replaceChildren(); for (const item 
 function openTask(task,projectId,statusId) {
  if (state.projects.length === 0) { openProject(null); return; }
  editingTask = task ? task.id : null;
+ $('task-create-chat').hidden = task === null;
  $('task-save-error').hidden = true;
  $('open-issue-import').hidden = task !== null;
  $('description-label').textContent = task && task.issue ? 'Local notes' : 'Description';
@@ -315,18 +319,27 @@ function openTask(task,projectId,statusId) {
  $('delete-task').hidden = task === null; $('editor').showModal(); $('title').focus();
 }
 async function saveTask(createChat) {
- const title = $('title').value.trim(); if (title.length === 0) return;
- const existing = state.tasks.find(item => item.id === editingTask);
- const task = {...existing,id:editingTask || crypto.randomUUID(),title,description:$('description').value.trim(),priority:$('priority').value,due:$('due').value,projectId:$('task-project').value,statusId:$('task-status').value,chats:selectedChats};
- const index = state.tasks.findIndex(item => item.id === editingTask); if (index >= 0) state.tasks[index] = task; else state.tasks.push(task);
- const saved = await persist();
- if (saved === false) {
-  $('task-save-error').textContent = $('save-status').textContent;
-  $('task-save-error').hidden = false;
-  return;
+ if (savingTask) return;
+ savingTask = true;
+ try {
+  const ready = await descriptionImagesReady();
+  if (ready === false || $('editor').open === false) return;
+  const title = $('title').value.trim(); if (title.length === 0) return;
+  const existing = state.tasks.find(item => item.id === editingTask);
+  const description = $('description').value.trim();
+  const task = {...existing,id:editingTask || crypto.randomUUID(),title,description,priority:$('priority').value,due:$('due').value,projectId:$('task-project').value,statusId:$('task-status').value,chats:selectedChats};
+  const index = state.tasks.findIndex(item => item.id === editingTask); if (index >= 0) state.tasks[index] = task; else state.tasks.push(task);
+  const saved = await persist();
+  if (saved === false) {
+   $('task-save-error').textContent = $('save-status').textContent;
+   $('task-save-error').hidden = false;
+   return;
+  }
+  $('editor').close();
+  if (createChat) await createTaskChat(task);
+ } finally {
+  savingTask = false;
  }
- $('editor').close();
- if (createChat) await createTaskChat(task);
 }
 $('task-form').onsubmit = event => {
  event.preventDefault();

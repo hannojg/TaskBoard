@@ -19,7 +19,7 @@ Run this workflow only for an explicit create-board request carrying the setup r
    ```
 
    The helper overlays the TaskBoard API, status page, schema and generated migrations onto the starter, sets the logical D1 binding `DB`, and preserves a previously provisioned Site identity. It never copies the maintainer's Site ID or credentials. Do not replace the starter's build or publishing integration.
-7. If no Site ID exists, call Sites `create_site` once, with `creation_intent: user_requested`. Use a unique slug such as `taskboard-<request-id>` and title `TaskBoard Shared`. Immediately persist the returned opaque ID into `.openai/hosting.json` and record it through `taskboard_update_creation`. Preserve `d1: "DB"` and `r2: null`. If interrupted after creation, recover that returned Site instead of creating another.
+7. If no Site ID exists, call Sites `create_site` once, with `creation_intent: user_requested`. Use a unique slug such as `taskboard-<request-id>` and title `TaskBoard Shared`. Immediately persist the returned opaque ID into `.openai/hosting.json` and record it through `taskboard_update_creation`. Preserve `d1: "DB"` and `r2: "BUCKET"`. If interrupted after creation, recover that returned Site instead of creating another.
 8. Install the starter's dependencies using the Sites helper. The bundled migrations are already generated, schema-only SQL; preserve them. Do not seed sample projects or tasks.
 
 ## Publish privately

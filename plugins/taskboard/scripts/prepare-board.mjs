@@ -16,7 +16,7 @@ const manifest = JSON.parse(manifestText);
 if (creation.projectId && manifest.project_id && creation.projectId !== manifest.project_id) throw new Error('The saved Site identity does not match this board setup.');
 if (creation.projectId) manifest.project_id = creation.projectId;
 manifest.d1 = 'DB';
-manifest.r2 = null;
+manifest.r2 = 'BUCKET';
 const templateUrl = new URL('../site/',import.meta.url);
 const template = fileURLToPath(templateUrl);
 for (const file of boardTemplateFiles) {
