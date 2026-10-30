@@ -32,7 +32,7 @@ try {
  assert.equal(panelResource.contents[0]._meta['openai/ui'].preferredDisplayMode,'inline');
  const opened = await client.callTool({name:'taskboard_open',arguments:{}}); const launch = data(opened); assert.equal(launch.connectionRequired,false);
  const initialRead = await client.callTool({name:'taskboard_read',arguments:{}}); let board = data(initialRead); assert.equal(board.revision,0);
- const resource = await client.readResource({uri:'ui://taskboard/0.9.4/board.html'}); assert.match(resource.contents[0].text,/description-editor/);
+ const resource = await client.readResource({uri:'ui://taskboard/0.9.5/board.html'}); assert.match(resource.contents[0].text,/description-editor/);
  assert.ok(resource.contents[0]._meta.ui.csp.resourceDomains.includes('https://*'));
  assert.ok(resource.contents[0]._meta.ui.csp.resourceDomains.includes('data:'));
  const synced = await client.callTool({name:'taskboard_sync_projects',arguments:{projects:[{projectId:'verified-p',label:'Example',path:'/repo',hostId:'local',isGitRepository:true}]}}); board = data(synced); assert.equal(board.catalog.length,1);

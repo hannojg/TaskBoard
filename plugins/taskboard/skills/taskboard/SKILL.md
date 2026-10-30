@@ -19,6 +19,8 @@ Never read the private connection file into the chat or print its contents. Pass
 
 ## Projects and tasks
 
+Ticket checkpoints live in `description` as Markdown task-list items (`- [ ]` and `- [x]`), including one nested checkbox level. There is no separate subtask field. Cards display only the checkbox lines when checkpoints are present; supporting text and deeper levels stay in the description. Checking a card checkbox updates only its Markdown marker. Preserve the hierarchy and supporting text when editing checkpoints, and do not infer ticket status from checkpoint completion.
+
 Use TaskBoard tools as the source of truth for tickets. `taskboard_open` opens the view without reading the board. Call `taskboard_read` before edits to obtain current IDs and revision. If it returns `connectionRequired: true`, direct the user to the setup screen. Preserve unrelated fields on upserts. If a revision conflict occurs, reread and reapply only the requested change.
 
 Visible boards automatically read shared changes every five seconds and on window focus or reconnection. Editing, dragging and saving defer UI updates. A failed local save requires an explicit **Refresh board** before shared data replaces local edits. Automatic refresh does not discover Codex projects or chats; those catalogs still use the agent-assisted sync actions.

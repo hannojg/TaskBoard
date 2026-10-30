@@ -64,6 +64,8 @@ Linked chats can be searched, attached and opened from cards or the task editor.
 
 Descriptions show Markdown images inline, including `![Screenshot](https://example.com/image.png)` and reference-style images. Paste an image from the clipboard directly into the description to attach it. Pasted images are saved with the ticket and available on other connected Macs. Undo removes a pasted image in one step.
 
+Write checkpoints in the description using Markdown checkboxes: `- [ ] A step` or `- [x] A finished step`. Cards show these checkboxes and one nested checkbox level, with a completed count. Tick a card checkbox to save its Markdown marker. Supporting paragraphs and ordinary bullets stay in the description; cards with checkpoints show only the checkbox lines. Deeper checkbox levels remain in the description.
+
 **Import from GitHub** previews an issue URL or searches a repository, then imports the selected issue. It requires the GitHub CLI to be installed and signed in. These requests are read-only. Imported title, body, labels and open/closed state form a source snapshot; local notes, title, workflow status and chat links remain independent. **Refresh from GitHub** updates only that snapshot. Reimporting an issue opens its existing task.
 
 ## Storage and privacy

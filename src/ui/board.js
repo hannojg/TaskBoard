@@ -3,6 +3,7 @@ import { chatKey } from '../chat-key.js';
 import { chatUrl,taskChatUrl } from '../task-chat.js';
 import { descriptionImagesReady } from './markdown.js';
 import { descriptionText } from '../description.js';
+import { markdownCheckpoints,setCheckpoint } from '../checkpoints.js';
 import { startAutoRefresh } from './auto-refresh.js';
 export function startBoard(initialData,api) {
 const $ = id => document.getElementById(id);
@@ -269,12 +270,22 @@ function taskCard(task,group,groupByProject) {
   link.ondragstart = event => { event.preventDefault(); event.stopPropagation(); };
   card.append(link);
  }
- if (task.description) { const text = descriptionText(task.description); const description = element('p','',text); card.append(description); }
+ const checkpoints = markdownCheckpoints(task.description);
+ if (checkpoints.length > 0) {
+  const checklist = taskCheckpoints(task,checkpoints);
+  card.append(checklist);
+ } else if (task.description) { const text = descriptionText(task.description); const description = element('p','',text); card.append(description); }
  const meta = element('div','meta');
  const context = groupByProject ? statusFor(task.statusId) : projectFor(task.projectId);
  const contextName = context ? context.name : '';
  if (contextName) { const badge = element('span','priority',contextName); meta.append(badge); }
  if (task.priority !== 'None') { const badge = element('span','priority '+task.priority,task.priority); meta.append(badge); }
+ if (checkpoints.length > 0) {
+  const completed = checkpoints.filter(checkpoint => checkpoint.checked);
+  const progress = element('span','checkpoint-progress',completed.length+'/'+checkpoints.length);
+  progress.setAttribute('aria-label',completed.length+' of '+checkpoints.length+' checkpoints completed');
+  meta.append(progress);
+ }
  if (task.chats.length > 0) {
   const label = task.chats.length === 1 ? '1 chat' : task.chats.length+' chats';
   const chats = chatAction(label,'Open linked chat',() => openTaskChats(task));
@@ -292,6 +303,33 @@ function taskCard(task,group,groupByProject) {
  card.ondragend = () => { dragged = null; render(); };
  card.ondrop = event => { if (draggedColumn) return; event.preventDefault(); event.stopPropagation(); if (dragged && dragged !== task.id) moveTask(dragged,group,groupByProject,task.id); };
  return card;
+}
+function taskCheckpoints(task,checkpoints) {
+ const list = element('ul','card-checkpoints');
+ list.setAttribute('aria-label','Checkpoints');
+ for (const checkpoint of checkpoints) {
+  const item = element('li','card-checkpoint');
+  item.classList.toggle('checkpoint-nested',checkpoint.depth === 1);
+  const label = element('label','');
+  const checkbox = element('input','');
+  checkbox.type = 'checkbox';
+  checkbox.checked = checkpoint.checked;
+  const text = element('span','',checkpoint.text);
+  checkbox.onchange = async () => {
+   if (saving || failed) {
+    checkbox.checked = checkpoint.checked;
+    return;
+   }
+   task.description = setCheckpoint(task.description,checkpoint.position,checkbox.checked);
+   await persist();
+  };
+  label.append(checkbox,text);
+  item.append(label);
+  list.append(item);
+ }
+ list.onclick = event => event.stopPropagation();
+ list.ondragstart = event => { event.preventDefault(); event.stopPropagation(); };
+ return list;
 }
 function githubIcon() {
  const namespace = 'http://www.w3.org/2000/svg';

@@ -1647,6 +1647,57 @@ aside > button,
     color: #f5aa9d;
   }
 }
+.card-checkpoints {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+.card-checkpoint {
+  margin: 0 0 6px;
+}
+.card-checkpoint.checkpoint-nested {
+  margin-left: 20px;
+}
+.card-checkpoint label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.card-checkpoint input {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin: 3px 0 0;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+.card-checkpoint input:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 3px;
+}
+.card-checkpoint span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.card-checkpoint input:checked + span {
+  text-decoration: line-through;
+  color: #8296af;
+}
+.checkpoint-progress {
+  font-variant-numeric: tabular-nums;
+  color: #6687b3;
+}
+@media (prefers-color-scheme: dark) {
+  .checkpoint-progress {
+    color: #9dbded;
+  }
+  .card-checkpoint input {
+    color-scheme: dark;
+  }
+}
 </style></head><body>
 <div id="connection-status" role="status"><span id="connection-message">Connecting to Codex…</span><button id="retry-connection" hidden>Try again</button></div><header><a class="brand" href="./">tasks</a><span class="private">Personal workspace</span><span class="avatar">HG</span></header>
 <section id="connection-setup" hidden aria-labelledby="setup-title"><div class="setup-card"><span class="eyebrow">WELCOME TO TASKBOARD</span><h1 id="setup-title">Your projects, together.</h1><p>Create a private board for your projects, or connect to one from another Mac.</p><div id="setup-choices"><div class="setup-option"><button id="create-board" class="primary">Create a new board</button><p>Codex sets up private online storage using Sites.</p></div><div class="setup-option"><button id="choose-connection-file">Connect to an existing board</button><p>Choose the private connection file from your connected Mac.</p></div></div><div id="creation-progress" hidden><p id="creation-message" role="status"></p><p class="setup-note">Codex is setting up your board in this chat. Keep TaskBoard open; it will connect when setup finishes.</p><button id="continue-creation">Continue setup in chat</button></div><p id="setup-error" role="alert" hidden></p><p class="setup-note">Your connection stays private on this Mac. You can use a different Codex account.</p></div></section><div class="workspace" id="workspace" hidden><aside><button id="overview" class="nav-item">All projects</button><div class="sidebar-label">PROJECTS <button id="sidebar-add" class="icon" aria-label="New project">＋</button></div><nav id="projects"></nav><button id="sync-projects" class="nav-item">Sync Codex projects</button><div class="sidebar-meta"><button id="refresh-board" title="Load the latest saved changes from other open panels">Refresh board</button><span class="save-indicator" role="status"><span class="saved-dot"></span><span id="save-status">All changes saved</span></span><span id="sync-status" role="status" hidden></span></div></aside><main><div class="toolbar"><div><h1 id="view-title">All projects</h1><div id="project-links"></div></div><div class="tools"><label class="search">⌕ <input id="search" placeholder="Search tasks…" aria-label="Search tasks"></label><div class="board-actions"><button class="primary" id="new-task">＋ New task</button><button id="add-project">＋ New project</button></div></div></div><div class="viewbar"><div class="tabs"><button id="by-project">Projects</button><button id="by-status">Status</button></div><span id="total"></span><button id="edit-project" hidden>Edit project</button></div><div id="board" class="board"></div></main></div>
@@ -51087,6 +51138,35 @@ container holding the app. Specify either width or maxWidth, and either height o
   });
   editorObserver.observe(dialog, { attributes: true, attributeFilter: ["open"] });
 
+  // src/checkpoints.js
+  function markdownCheckpoints(description) {
+    const tree = markdownLanguage.parser.parse(description);
+    const checkpoints = [];
+    tree.iterate({ enter(cursor) {
+      if (cursor.name !== "Task") return;
+      const node2 = cursor.node;
+      let depth = 0;
+      for (let parent = node2.parent.parent; parent; parent = parent.parent) {
+        if (parent.name === "ListItem" && parent.getChild("Task")) depth += 1;
+      }
+      if (depth > 1) return;
+      const marker = node2.getChild("TaskMarker");
+      const newline3 = description.indexOf("\n", marker.to);
+      const end = newline3 >= 0 ? Math.min(newline3, node2.to) : node2.to;
+      const line = description.slice(marker.to, end);
+      const text = line.trim();
+      const checked = description[marker.from + 1] !== " ";
+      checkpoints.push({ position: marker.from + 1, text, checked, depth });
+    } });
+    return checkpoints;
+  }
+  function setCheckpoint(description, position, checked) {
+    const before = description.slice(0, position);
+    const after = description.slice(position + 1);
+    const mark = checked ? "x" : " ";
+    return before + mark + after;
+  }
+
   // src/ui/auto-refresh.js
   function startAutoRefresh(refresh) {
     let timer;
@@ -51495,7 +51575,11 @@ container holding the app. Specify either width or maxWidth, and either height o
         };
         card.append(link);
       }
-      if (task.description) {
+      const checkpoints = markdownCheckpoints(task.description);
+      if (checkpoints.length > 0) {
+        const checklist = taskCheckpoints(task, checkpoints);
+        card.append(checklist);
+      } else if (task.description) {
         const text = descriptionText(task.description);
         const description = element("p", "", text);
         card.append(description);
@@ -51510,6 +51594,12 @@ container holding the app. Specify either width or maxWidth, and either height o
       if (task.priority !== "None") {
         const badge = element("span", "priority " + task.priority, task.priority);
         meta4.append(badge);
+      }
+      if (checkpoints.length > 0) {
+        const completed = checkpoints.filter((checkpoint) => checkpoint.checked);
+        const progress = element("span", "checkpoint-progress", completed.length + "/" + checkpoints.length);
+        progress.setAttribute("aria-label", completed.length + " of " + checkpoints.length + " checkpoints completed");
+        meta4.append(progress);
       }
       if (task.chats.length > 0) {
         const label = task.chats.length === 1 ? "1 chat" : task.chats.length + " chats";
@@ -51551,6 +51641,36 @@ container holding the app. Specify either width or maxWidth, and either height o
         if (dragged && dragged !== task.id) moveTask(dragged, group, groupByProject, task.id);
       };
       return card;
+    }
+    function taskCheckpoints(task, checkpoints) {
+      const list = element("ul", "card-checkpoints");
+      list.setAttribute("aria-label", "Checkpoints");
+      for (const checkpoint of checkpoints) {
+        const item = element("li", "card-checkpoint");
+        item.classList.toggle("checkpoint-nested", checkpoint.depth === 1);
+        const label = element("label", "");
+        const checkbox = element("input", "");
+        checkbox.type = "checkbox";
+        checkbox.checked = checkpoint.checked;
+        const text = element("span", "", checkpoint.text);
+        checkbox.onchange = async () => {
+          if (saving || failed) {
+            checkbox.checked = checkpoint.checked;
+            return;
+          }
+          task.description = setCheckpoint(task.description, checkpoint.position, checkbox.checked);
+          await persist();
+        };
+        label.append(checkbox, text);
+        item.append(label);
+        list.append(item);
+      }
+      list.onclick = (event) => event.stopPropagation();
+      list.ondragstart = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      };
+      return list;
     }
     function githubIcon() {
       const namespace = "http://www.w3.org/2000/svg";
@@ -52079,7 +52199,7 @@ container holding the app. Specify either width or maxWidth, and either height o
   }
 
   // src/ui/bridge.js
-  var app = new i({ name: "taskboard", version: "0.9.4" });
+  var app = new i({ name: "taskboard", version: "0.9.5" });
   new OpenAIExtensions(app);
   var accept;
   var workspace = document.getElementById("workspace");
