@@ -787,6 +787,9 @@ aside {
   overflow-y: auto;
 }
 @media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
   body {
     color: #d6e4f5;
     background: #101b2a;
@@ -796,11 +799,15 @@ aside {
     border-color: #253a54;
   }
   .brand,
-  h1 {
+  h1,
+  .column-open {
     color: #d6e4f5;
   }
   aside {
     background: #111f31;
+    border-color: #253a54;
+  }
+  .toolbar {
     border-color: #253a54;
   }
   .column {
@@ -813,6 +820,9 @@ aside {
     border-color: #2b415b;
     color: #d6e4f5;
   }
+  dialog::backdrop {
+    background: #050c1680;
+  }
   button,
   form input,
   textarea,
@@ -821,12 +831,83 @@ aside {
     color: #cfdef0;
     border-color: #2b415b;
   }
+  button:hover {
+    background: #243b56;
+  }
   .primary {
     background: #2563eb;
     color: white;
   }
+  .nav-item.active,
+  .tabs button.active,
+  .avatar,
+  .view span {
+    background: #243f63;
+    color: #b8d2ff;
+  }
+  .nav-item.active:hover,
+  .tabs button.active:hover {
+    background: #2b4c75;
+  }
+  .column-open:hover,
+  .view,
+  .mark {
+    color: #b8d2ff;
+  }
+  p,
+  .card p,
+  .muted,
+  .private,
+  .eyebrow,
+  .count,
+  .sidebar-label,
+  .viewbar,
+  .meta,
+  form label,
+  .search,
+  .add-task,
+  .empty,
+  .board-empty,
+  .icon {
+    color: #9bb0ca;
+  }
   .search input {
     color: #cfdef0;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: #91a2b7;
+    opacity: 1;
+  }
+  .priority {
+    background: #263e5b;
+    color: #b8d2ff;
+  }
+  .priority.High {
+    background: #442e36;
+    color: #ffb6ae;
+  }
+  .priority.Medium {
+    background: #433a24;
+    color: #f5d28a;
+  }
+  .danger {
+    color: #ffb6ae;
+  }
+  .drop-target {
+    outline-color: #93b9ef;
+    background: #203c5b;
+  }
+  .project-link,
+  #sync-projects {
+    color: #9dbded;
+  }
+  .local-path {
+    color: #9bb0ca;
+  }
+  #connection-status {
+    background: #243f63;
+    color: #b8d2ff;
   }
 }
 .markdown-field {
@@ -947,7 +1028,14 @@ dialog {
     color: #93c5fd;
   }
   #description-editor .md-marker {
-    color: #7e90a7;
+    color: #9bb0ca;
+  }
+  #description-editor .md-url,
+  #description-editor .md-quote {
+    color: #9bb0ca;
+  }
+  #description-editor .cm-cursor {
+    border-left-color: #93c5fd;
   }
   #description-editor .cm-selectionBackground {
     background: #294d7b;
@@ -1029,6 +1117,9 @@ dialog {
   }
   .chat-choice:hover {
     background: #233951;
+  }
+  .chat-heading {
+    color: #9bb0ca;
   }
   #chat-options {
     border-color: #2b415b;
@@ -1216,6 +1307,11 @@ aside > button,
 .column-drop-after {
   box-shadow: inset -3px 0 #629bff;
 }
+@media (prefers-color-scheme: dark) {
+  .column-grip:hover {
+    color: #b8d2ff;
+  }
+}
 #projects .nav-item {
   display: flex;
   align-items: center;
@@ -1338,6 +1434,9 @@ aside > button,
   }
   .issue-badge:hover {
     color: #b8d2ff;
+  }
+  #task-issue summary {
+    color: #9dbded;
   }
 }
 .card-header {
@@ -1602,6 +1701,11 @@ aside > button,
 }
 #description-status:empty {
   display: none;
+}
+@media (prefers-color-scheme: dark) {
+  #description-editor .md-image-error {
+    color: #ffb6ae;
+  }
 }
 #sync-status {
   font-size: 10px;
@@ -1917,8 +2021,14 @@ aside > button,
   #task-asana > a {
     color: #9dbded;
   }
+  .asana-title:hover {
+    color: #b8d2ff;
+  }
   .asana-badge {
     color: #f5aa9d;
+  }
+  .asana-badge:hover {
+    color: #ffb6ae;
   }
   #title[readonly] {
     background: #182b42;
@@ -53084,7 +53194,7 @@ container holding the app. Specify either width or maxWidth, and either height o
   }
 
   // src/ui/bridge.js
-  var app = new i({ name: "taskboard", version: "0.10.4" });
+  var app = new i({ name: "taskboard", version: "0.10.5" });
   new OpenAIExtensions(app);
   var accept;
   var workspace = document.getElementById("workspace");
