@@ -1,0 +1,27 @@
+{
+  "state": {
+    "version": 3,
+    "projects": [
+      {"id":"p1","name":"TaskBoard","repo":"","path":"","codexId":"","hostId":"local","bindings":[]},
+      {"id":"p2","name":"Website","repo":"","path":"","codexId":"","hostId":"local","bindings":[]}
+    ],
+    "tasks": [
+      {"id":"backlog","title":"Not started","description":"","priority":"High","due":"","projectId":"p1","statusId":"backlog","chats":[]},
+      {"id":"none","title":"Explore widget layouts","description":"Try a small widget.","priority":"None","due":"","projectId":"p1","statusId":"progress","chats":[]},
+      {"id":"medium","title":"Review onboarding","description":"","priority":"Medium","due":"2026-11-01","projectId":"p2","statusId":"progress","chats":[]},
+      {"id":"high-later","title":"Ship the release","description":"","priority":"High","due":"2026-11-05","projectId":"p1","statusId":"progress","chats":[]},
+      {"id":"high-first","title":"Fix keyboard navigation","description":"Keep focus visible.","priority":"High","due":"2026-11-02","projectId":"p1","statusId":"progress","chats":[]},
+      {"id":"high-tie","title":"Review accessibility","description":"","priority":"High","due":"2026-11-02","projectId":"p2","statusId":"progress","chats":[]},
+      {"id":"high-no-date","title":"Plan the next iteration","description":"","priority":"High","due":"","projectId":"p1","statusId":"progress","chats":[]},
+      {"id":"todo","title":"Later","description":"","priority":"High","due":"","projectId":"p1","statusId":"todo","chats":[]},
+      {"id":"review","title":"Waiting","description":"","priority":"High","due":"","projectId":"p1","statusId":"review","chats":[]},
+      {"id":"blocked","title":"Blocked","description":"","priority":"High","due":"","projectId":"p1","statusId":"blocked","chats":[]},
+      {"id":"done","title":"Finished","description":"","priority":"High","due":"","projectId":"p1","statusId":"done","chats":[]}
+    ],
+    "statusOrder": ["backlog","todo","progress","review","blocked","done"]
+  },
+  "revision": 42,
+  "catalog": [],
+  "chatCatalog": [],
+  "features": ["references","asana"]
+}

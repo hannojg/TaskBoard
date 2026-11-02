@@ -26,3 +26,15 @@ jobs:
       - run: npm run package
       - name: Check committed bundle matches source
         run: git diff --exit-code -- .agents/plugins/marketplace.json plugins/taskboard site/lib/board-api.mjs
+
+  macos-companion:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test companion board integration
+        run: swift test --package-path macos
+      - name: Build app and embedded widget
+        run: >-
+          xcodebuild -project macos/TaskBoardFocus.xcodeproj
+          -scheme TaskBoardFocus -configuration Debug
+          -derivedDataPath macos/build CODE_SIGNING_ALLOWED=NO build

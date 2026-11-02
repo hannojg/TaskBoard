@@ -10,3 +10,9 @@ TaskBoard-connection.json
 .env*
 .dev.vars*
 connection.json
+
+macos/.build/
+macos/build/
+macos/.swiftpm/
+macos/**/*.xcuserstate
+macos/**/xcuserdata/
