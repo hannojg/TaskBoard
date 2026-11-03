@@ -2,6 +2,8 @@
 
 A Codex desktop plugin for one shared project and task overview across Macs, including Macs signed in to different Codex accounts. Projects live in the sidebar; the overview groups tasks by project or status. Tasks support Markdown descriptions, priorities, due dates, GitHub issue imports and links to Codex chats.
 
+Status badges are color coded. Project columns put in-progress tasks first and completed tasks last, preserving your task order within each group. The status filter hides done tasks by default; choose **All tasks** or a specific status to show them. Completed cards appear faded until hovered or focused.
+
 The plugin is public. Your board is private; a separate connection file lets you share it with another Mac.
 
 ## Install

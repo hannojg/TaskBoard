@@ -12,6 +12,8 @@ export function startBoard(initialData,api) {
 const $ = id => document.getElementById(id);
 
 const statuses = [{id:'backlog',name:'Backlog'},{id:'todo',name:'To do'},{id:'progress',name:'In progress'},{id:'review',name:'Waiting for review'},{id:'blocked',name:'Blocked'},{id:'done',name:'Done'}];
+const taskFilters = [{id:'active',name:'Hide done'},{id:'all',name:'All tasks'},...statuses];
+fillOptions('status-filter',taskFilters,'active');
 let state = initialData.state;
 let revision = initialData.revision;
 let catalog = initialData.catalog;
@@ -59,6 +61,11 @@ function persist() { return sync.save(state); }
 $('retry-save').onclick = () => sync.retry();
 function projectFor(id) { return state.projects.find(project => project.id === id); }
 function statusFor(id) { return statuses.find(status => status.id === id); }
+function taskRank(task) {
+ if (task.statusId === 'progress') return 0;
+ if (task.statusId === 'done') return 2;
+ return 1;
+}
 function selectProject(id) { selectedProject = id; render(); }
 function clearProjectDrag() {
  draggedProject = null;
@@ -151,7 +158,19 @@ function render() {
  }
  const board = $('board'); board.replaceChildren();
  const query = $('search').value.toLowerCase();
- const visible = state.tasks.filter(task => { const text = task.title+' '+task.description; const lower = text.toLowerCase(); return (selectedProject === null || task.projectId === selectedProject) && lower.includes(query); });
+ const statusFilter = $('status-filter').value;
+ const visible = state.tasks.filter(task => {
+  const text = task.title+' '+task.description;
+  const lower = text.toLowerCase();
+  const matchesProject = selectedProject === null || task.projectId === selectedProject;
+  const matchesStatus = statusFilter === 'active' ? task.statusId !== 'done' : statusFilter === 'all' || task.statusId === statusFilter;
+  return matchesProject && matchesStatus && lower.includes(query);
+ });
+ visible.sort((left,right) => {
+  const leftRank = taskRank(left);
+  const rightRank = taskRank(right);
+  return leftRank-rightRank;
+ });
  const taskLabel = visible.length === 1 ? ' task' : ' tasks';
  $('total').textContent = visible.length+taskLabel;
  if (state.projects.length === 0) {
@@ -164,6 +183,7 @@ function render() {
   const section = element('section','column'); section.setAttribute('aria-label',group.name);
   const head = element('div','column-head');
   const title = element('button','column-open',group.name); title.onclick = () => { if (groupByProject) selectProject(group.id); }; title.title = groupByProject ? 'Open project board' : group.name;
+  if (groupByProject === false) title.classList.add('status-badge','status-'+group.id);
   const tasks = visible.filter(task => groupByProject ? task.projectId === group.id : task.statusId === group.id);
   const countText = String(tasks.length); const count = element('span','count',countText);
   const grip = element('button','column-grip','⠿');
@@ -195,7 +215,12 @@ function render() {
   }
   const cards = element('div','cards');
   for (const task of tasks) { const card = taskCard(task,group,groupByProject); cards.append(card); }
-  if (tasks.length === 0) { const empty = element('div','empty',query ? 'No matching tasks' : 'No tasks'); cards.append(empty); }
+  if (tasks.length === 0) {
+   const doneHidden = groupByProject === false && group.id === 'done' && statusFilter === 'active';
+   const message = doneHidden ? 'Done tasks are hidden' : query || statusFilter !== 'all' ? 'No matching tasks' : 'No tasks';
+   const empty = element('div','empty',message);
+   cards.append(empty);
+  }
   section.ondragover = event => {
    if (draggedColumn === null && dragged === null) return;
    event.preventDefault(); event.dataTransfer.dropEffect = 'move';
@@ -242,6 +267,7 @@ function moveTask(id,group,groupByProject,beforeId) {
 }
 function taskCard(task,group,groupByProject) {
  const card = element('article','card'); card.draggable = true; card.tabIndex = 0; card.setAttribute('aria-label',task.title+'; edit task');
+ card.classList.toggle('card-done',task.statusId === 'done');
  const header = element('div','card-header');
  const heading = element('h2','',task.title);
  if (task.asana) {
@@ -313,7 +339,11 @@ function taskCard(task,group,groupByProject) {
  const meta = element('div','meta');
  const context = groupByProject ? statusFor(task.statusId) : projectFor(task.projectId);
  const contextName = context ? context.name : '';
- if (contextName) { const badge = element('span','priority',contextName); meta.append(badge); }
+ if (contextName) {
+  const className = groupByProject ? 'status-badge status-'+task.statusId : 'priority';
+  const badge = element('span',className,contextName);
+  meta.append(badge);
+ }
  if (task.priority !== 'None') { const badge = element('span','priority '+task.priority,task.priority); meta.append(badge); }
  if (checkpoints.length > 0) {
   const completed = checkpoints.filter(checkpoint => checkpoint.checked);
@@ -854,6 +884,7 @@ $('overview').onclick = () => selectProject(null);
 $('by-project').onclick = () => { view = 'projects'; render(); };
 $('by-status').onclick = () => { view = 'status'; render(); };
 $('search').oninput = render;
+$('status-filter').onchange = render;
 
 function fillCatalog(project) {
  const selectedId = project ? project.codexId : '';
