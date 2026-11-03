@@ -3,7 +3,7 @@ import { OpenAIExtensions } from '@openai/mcp-extensions/app';
 import { startBoard } from './board.js';
 import './markdown.js';
 import './style.css';
-const app = new App({name:'taskboard',version:'0.10.6'});
+const app = new App({name:'taskboard',version:'0.10.7'});
 new OpenAIExtensions(app);
 let accept;
 const workspace = document.getElementById('workspace');
@@ -45,7 +45,7 @@ function unpack(result) {
   throw new Error(messages.join('\n'));
  }
  const data = result.structuredContent;
- if (data === undefined || (data.state === undefined && typeof data.connectionRequired !== 'boolean')) throw new Error('TaskBoard returned no board data.');
+ if (data === undefined || (data.state === undefined && data.preferences === undefined && typeof data.connectionRequired !== 'boolean')) throw new Error('TaskBoard returned no board data.');
  return data;
 }
 async function read() {
@@ -54,6 +54,11 @@ async function read() {
 }
 const api = {
  read,
+ savePreferences:async statusFilter => {
+  const result = await app.callServerTool({name:'taskboard_save_preferences',arguments:{statusFilter}});
+  const data = unpack(result);
+  return data.preferences;
+ },
  searchIssues:async (repository,query) => { const result = await app.callServerTool({name:'taskboard_github_search',arguments:{repository,query}}); return unpack(result); },
  importIssue:async (url,projectId,statusId,revision) => { const result = await app.callServerTool({name:'taskboard_import_issue',arguments:{url,projectId,statusId,revision}}); return unpack(result); },
  refreshIssue:async (taskId,revision) => { const result = await app.callServerTool({name:'taskboard_refresh_issue',arguments:{taskId,revision}}); return unpack(result); },

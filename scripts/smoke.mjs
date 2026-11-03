@@ -32,7 +32,25 @@ try {
  assert.equal(panelResource.contents[0]._meta['openai/ui'].preferredDisplayMode,'inline');
  const opened = await client.callTool({name:'taskboard_open',arguments:{}}); const launch = data(opened); assert.equal(launch.connectionRequired,false);
  const initialRead = await client.callTool({name:'taskboard_read',arguments:{}}); let board = data(initialRead); assert.equal(board.revision,0);
- const resource = await client.readResource({uri:'ui://taskboard/0.10.6/board.html'}); assert.match(resource.contents[0].text,/description-editor/);
+ assert.deepEqual(board.preferences,{statusFilter:'active'});
+ const preferenceTool = list.tools.find(tool => tool.name === 'taskboard_save_preferences');
+ assert.deepEqual(preferenceTool._meta.ui.visibility,['app']);
+ const preferenceSave = await client.callTool({name:'taskboard_save_preferences',arguments:{statusFilter:'review'}});
+ const preferences = data(preferenceSave);
+ assert.deepEqual(preferences.preferences,{statusFilter:'review'});
+ const reopened = new Client({name:'taskboard-preference-restart',version:'1.0.0'});
+ const reopenedTransport = new StdioClientTransport({command:process.execPath,args:[server],env:{...process.env,TASKBOARD_DATA_DIR:directory},stderr:'pipe'});
+ try {
+  await reopened.connect(reopenedTransport);
+  const restoredRead = await reopened.callTool({name:'taskboard_read',arguments:{}});
+  const restored = data(restoredRead);
+  assert.deepEqual(restored.preferences,{statusFilter:'review'});
+  assert.equal(restored.revision,board.revision);
+  assert.deepEqual(restored.state,board.state);
+ } finally { await reopened.close(); }
+ const invalidPreference = await client.callTool({name:'taskboard_save_preferences',arguments:{statusFilter:'invalid'}});
+ assert.equal(invalidPreference.isError,true);
+ const resource = await client.readResource({uri:'ui://taskboard/0.10.7/board.html'}); assert.match(resource.contents[0].text,/description-editor/);
  assert.ok(resource.contents[0]._meta.ui.csp.resourceDomains.includes('https://*'));
  assert.ok(resource.contents[0]._meta.ui.csp.resourceDomains.includes('data:'));
  const synced = await client.callTool({name:'taskboard_sync_projects',arguments:{projects:[{projectId:'verified-p',label:'Example',path:'/repo',hostId:'local',isGitRepository:true}]}}); board = data(synced); assert.equal(board.catalog.length,1);
@@ -67,5 +85,6 @@ try {
  assert.equal(protectedTask.description,fresh.description);
  assert.equal(protectedTask.chats.length,1);
  console.log('Asana MCP: import, source refresh, ownership protection and chat linking passed.');
+ console.log('Local status filter survives a server restart without changing the shared board.');
  console.log('Named sidebar and chat entrypoints verified. MCP: resource, catalog sync, project creation, task linking, references, persistence and conflict checks passed.');
 } finally { await client.close(); for (const cleanup of cleanups) await cleanup(); rmSync(directory,{recursive:true}); }

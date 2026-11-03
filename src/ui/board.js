@@ -13,7 +13,7 @@ const $ = id => document.getElementById(id);
 
 const statuses = [{id:'backlog',name:'Backlog'},{id:'todo',name:'To do'},{id:'progress',name:'In progress'},{id:'review',name:'Waiting for review'},{id:'blocked',name:'Blocked'},{id:'done',name:'Done'}];
 const taskFilters = [{id:'active',name:'Hide done'},{id:'all',name:'All tasks'},...statuses];
-fillOptions('status-filter',taskFilters,'active');
+fillOptions('status-filter',taskFilters,initialData.preferences.statusFilter);
 let state = initialData.state;
 let revision = initialData.revision;
 let catalog = initialData.catalog;
@@ -884,7 +884,12 @@ $('overview').onclick = () => selectProject(null);
 $('by-project').onclick = () => { view = 'projects'; render(); };
 $('by-status').onclick = () => { view = 'status'; render(); };
 $('search').oninput = render;
-$('status-filter').onchange = render;
+$('status-filter').onchange = async () => {
+ const statusFilter = $('status-filter').value;
+ render();
+ try { await api.savePreferences(statusFilter); }
+ catch(error) { notify('Could not save filter. '+error.message); }
+};
 
 function fillCatalog(project) {
  const selectedId = project ? project.codexId : '';

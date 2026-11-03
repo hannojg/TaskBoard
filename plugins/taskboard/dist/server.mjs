@@ -28226,10 +28226,39 @@ async function resolveProject(catalog, projectId, hostId) {
   }
 }
 
+// src/server/preferences.mjs
+import { readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
+import { join as join4 } from "node:path";
+import { randomUUID as randomUUID4 } from "node:crypto";
+var statusFilterSchema = external_exports.enum(["active", "all", ...statusIds]);
+var preferencesSchema = external_exports.object({ statusFilter: statusFilterSchema });
+function readPreferences(directory) {
+  const path = join4(directory, "preferences.json");
+  let text;
+  try {
+    text = readFileSync(path, "utf8");
+  } catch (error62) {
+    if (error62.code === "ENOENT") return { statusFilter: "active" };
+    throw error62;
+  }
+  const data = JSON.parse(text);
+  return preferencesSchema.parse(data);
+}
+function savePreferences(directory, preferences) {
+  const saved = preferencesSchema.parse(preferences);
+  const path = join4(directory, "preferences.json");
+  const temporary = path + "." + randomUUID4();
+  const text = JSON.stringify(saved, null, 2);
+  mkdirSync(directory, { recursive: true, mode: 448 });
+  writeFileSync(temporary, text + "\n", { mode: 384 });
+  renameSync(temporary, path);
+  return saved;
+}
+
 // src/server/index.mjs
 import { readFile as readFile4 } from "node:fs/promises";
 import { homedir as homedir2 } from "node:os";
-import { join as join4 } from "node:path";
+import { join as join5 } from "node:path";
 
 // node_modules/zod/v3/helpers/util.js
 var util;
@@ -38023,13 +38052,13 @@ function N3(Z, $, J, X, V) {
 
 // src/server/index.mjs
 var home = homedir2();
-var dataDirectory = process.env.TASKBOARD_DATA_DIR || join4(home, "Library", "Application Support", "TaskBoard");
+var dataDirectory = process.env.TASKBOARD_DATA_DIR || join5(home, "Library", "Application Support", "TaskBoard");
 var store = await loadStore(dataDirectory);
 var iconFile = new URL("../assets/icon.svg", import.meta.url);
 var icon = await readFile4(iconFile);
 var encodedIcon = icon.toString("base64");
 var icons = [{ src: "data:image/svg+xml;base64," + encodedIcon, mimeType: "image/svg+xml", sizes: ["any"] }];
-var server = new McpServer({ name: "taskboard", version: "0.10.6", icons });
+var server = new McpServer({ name: "taskboard", version: "0.10.7", icons });
 var registerHandler = server.server.setRequestHandler.bind(server.server);
 server.server.setRequestHandler = (schema, handler) => {
   if (schema !== ListToolsRequestSchema) return registerHandler(schema, handler);
@@ -38039,8 +38068,8 @@ server.server.setRequestHandler = (schema, handler) => {
     return { ...listed, tools };
   });
 };
-var uri = "ui://taskboard/0.10.6/board.html";
-var panelUri = "ui://taskboard/0.10.6/panel.html";
+var uri = "ui://taskboard/0.10.7/board.html";
+var panelUri = "ui://taskboard/0.10.7/panel.html";
 function registerBoardResource(name, resourceUri, preferredDisplayMode) {
   N3(server, name, resourceUri, {}, async () => {
     const file2 = new URL("./app.html", import.meta.url);
@@ -38053,6 +38082,7 @@ registerBoardResource("taskboard-panel", panelUri, "inline");
 var readOnly = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
 var write = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
 function result(data) {
+  if (data.state) data = { ...data, preferences: readPreferences(dataDirectory) };
   return { content: [{ type: "text", text: "TaskBoard loaded." }], structuredContent: data };
 }
 function handle(callback) {
@@ -38091,6 +38121,10 @@ async function requireAsanaSupport() {
 register("taskboard_open", "Open TaskBoard fullscreen from the Codex sidebar.", {}, readOnly, launchState, { "openai/ui": { entrypoints: [{ type: "global" }] } }, "TaskBoard");
 register("taskboard_open_panel", "Open TaskBoard alongside a Codex chat.", {}, readOnly, launchState, { ui: { resourceUri: panelUri, visibility: ["app", "model"] }, "openai/ui": { entrypoints: [{ type: "thread" }] } }, "TaskBoard");
 register("taskboard_read", "Read current tasks, project links, revision, and the last agent-refreshed Codex project catalog.", {}, readOnly, readBoard);
+register("taskboard_save_preferences", "Save this Mac\u2019s status filter without changing shared tasks.", { statusFilter: statusFilterSchema }, write, (args) => {
+  const preferences = savePreferences(dataDirectory, args);
+  return { preferences };
+}, { ui: { resourceUri: uri, visibility: ["app"] } });
 register("taskboard_connect", "Choose and import a private connection file on this Mac.", {}, write, async (args, extra) => {
   const selected = await chooseConnectionFile(extra.signal);
   if (selected === null) {

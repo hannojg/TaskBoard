@@ -52020,7 +52020,7 @@ container holding the app. Specify either width or maxWidth, and either height o
     const $ = (id2) => document.getElementById(id2);
     const statuses = [{ id: "backlog", name: "Backlog" }, { id: "todo", name: "To do" }, { id: "progress", name: "In progress" }, { id: "review", name: "Waiting for review" }, { id: "blocked", name: "Blocked" }, { id: "done", name: "Done" }];
     const taskFilters = [{ id: "active", name: "Hide done" }, { id: "all", name: "All tasks" }, ...statuses];
-    fillOptions("status-filter", taskFilters, "active");
+    fillOptions("status-filter", taskFilters, initialData.preferences.statusFilter);
     let state = initialData.state;
     let revision = initialData.revision;
     let catalog = initialData.catalog;
@@ -53125,7 +53125,15 @@ container holding the app. Specify either width or maxWidth, and either height o
       render();
     };
     $("search").oninput = render;
-    $("status-filter").onchange = render;
+    $("status-filter").onchange = async () => {
+      const statusFilter = $("status-filter").value;
+      render();
+      try {
+        await api2.savePreferences(statusFilter);
+      } catch (error62) {
+        notify("Could not save filter. " + error62.message);
+      }
+    };
     function fillCatalog(project) {
       const selectedId = project ? project.codexId : "";
       const selectedHost = project ? project.hostId || "local" : "local";
@@ -53319,7 +53327,7 @@ container holding the app. Specify either width or maxWidth, and either height o
   }
 
   // src/ui/bridge.js
-  var app = new i({ name: "taskboard", version: "0.10.6" });
+  var app = new i({ name: "taskboard", version: "0.10.7" });
   new OpenAIExtensions(app);
   var accept;
   var workspace = document.getElementById("workspace");
@@ -53359,7 +53367,7 @@ container holding the app. Specify either width or maxWidth, and either height o
       throw new Error(messages.join("\n"));
     }
     const data2 = result.structuredContent;
-    if (data2 === void 0 || data2.state === void 0 && typeof data2.connectionRequired !== "boolean") throw new Error("TaskBoard returned no board data.");
+    if (data2 === void 0 || data2.state === void 0 && data2.preferences === void 0 && typeof data2.connectionRequired !== "boolean") throw new Error("TaskBoard returned no board data.");
     return data2;
   }
   async function read() {
@@ -53368,6 +53376,11 @@ container holding the app. Specify either width or maxWidth, and either height o
   }
   var api = {
     read,
+    savePreferences: async (statusFilter) => {
+      const result = await app.callServerTool({ name: "taskboard_save_preferences", arguments: { statusFilter } });
+      const data2 = unpack(result);
+      return data2.preferences;
+    },
     searchIssues: async (repository, query) => {
       const result = await app.callServerTool({ name: "taskboard_github_search", arguments: { repository, query } });
       return unpack(result);

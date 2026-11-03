@@ -4,6 +4,7 @@ import { connectFromFile,chooseConnectionFile } from './connection.mjs';
 import { beginCreation,readCreation,updateCreation,creationPrompt } from '../../scripts/creation.mjs';
 import { chatCatalogSchema } from './chats.mjs';
 import { resolveProject } from './project-details.mjs';
+import { readPreferences,savePreferences,statusFilterSchema } from './preferences.mjs';
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -21,7 +22,7 @@ const iconFile = new URL('../assets/icon.svg',import.meta.url);
 const icon = await readFile(iconFile);
 const encodedIcon = icon.toString('base64');
 const icons = [{src:'data:image/svg+xml;base64,'+encodedIcon,mimeType:'image/svg+xml',sizes:['any']}];
-const server = new McpServer({name:'taskboard',version:'0.10.6',icons});
+const server = new McpServer({name:'taskboard',version:'0.10.7',icons});
 // The SDK omits tool icons from tools/list; expose them at the protocol boundary.
 const registerHandler = server.server.setRequestHandler.bind(server.server);
 server.server.setRequestHandler = (schema,handler) => {
@@ -32,8 +33,8 @@ server.server.setRequestHandler = (schema,handler) => {
   return {...listed,tools};
  });
 };
-const uri = 'ui://taskboard/0.10.6/board.html';
-const panelUri = 'ui://taskboard/0.10.6/panel.html';
+const uri = 'ui://taskboard/0.10.7/board.html';
+const panelUri = 'ui://taskboard/0.10.7/panel.html';
 function registerBoardResource(name,resourceUri,preferredDisplayMode) {
  registerAppResource(server,name,resourceUri,{},async () => {
   const file = new URL('./app.html',import.meta.url);
@@ -45,7 +46,10 @@ registerBoardResource('taskboard',uri,'fullscreen');
 registerBoardResource('taskboard-panel',panelUri,'inline');
 const readOnly = {readOnlyHint:true,destructiveHint:false,openWorldHint:false};
 const write = {readOnlyHint:false,destructiveHint:false,openWorldHint:false};
-function result(data) { return {content:[{type:'text',text:'TaskBoard loaded.'}],structuredContent:data}; }
+function result(data) {
+ if (data.state) data = {...data,preferences:readPreferences(dataDirectory)};
+ return {content:[{type:'text',text:'TaskBoard loaded.'}],structuredContent:data};
+}
 function handle(callback) { return async (args,extra) => { try { const data = await callback(args,extra); return result(data); } catch(error) { return {isError:true,content:[{type:'text',text:error.message}]}; } }; }
 function register(name,description,inputSchema,annotations,callback,extra = {},title) {
  registerAppTool(server,name,{title,icons,description,inputSchema,annotations,_meta:{ui:{resourceUri:uri,visibility:['app','model']},...extra}},handle(callback));
@@ -73,6 +77,10 @@ async function requireAsanaSupport() {
 register('taskboard_open','Open TaskBoard fullscreen from the Codex sidebar.',{},readOnly,launchState,{'openai/ui':{entrypoints:[{type:'global'}]}},'TaskBoard');
 register('taskboard_open_panel','Open TaskBoard alongside a Codex chat.',{},readOnly,launchState,{ui:{resourceUri:panelUri,visibility:['app','model']},'openai/ui':{entrypoints:[{type:'thread'}]}},'TaskBoard');
 register('taskboard_read','Read current tasks, project links, revision, and the last agent-refreshed Codex project catalog.',{},readOnly,readBoard);
+register('taskboard_save_preferences','Save this Mac’s status filter without changing shared tasks.',{statusFilter:statusFilterSchema},write,args => {
+ const preferences = savePreferences(dataDirectory,args);
+ return {preferences};
+},{ui:{resourceUri:uri,visibility:['app']}});
 register('taskboard_connect','Choose and import a private connection file on this Mac.',{},write,async (args,extra) => {
  const selected = await chooseConnectionFile(extra.signal);
  if (selected === null) {
